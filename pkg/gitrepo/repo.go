@@ -19,14 +19,16 @@ type Repo struct {
 	fs billy.Filesystem
 }
 
-func New(cnfig Config) (*Repo, error) {
+func New(config Config) (*Repo, error) {
 	r := &Repo{}
 
 	return r, nil
 }
 
 func (r *Repo) EnsureUpToDate(ctx context.Context) error {
+	return nil
 }
 
 func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
+	return "", nil
 }
