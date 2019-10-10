@@ -26,7 +26,7 @@ func TestResolveVersion(t *testing.T) {
 	}
 
 	c := Config{
-		AuthBasicToken: os.Getenv("GITHUB_TOKEN"),
+		AuthBasicToken: os.Getenv("GITHUB_BOT_TOKEN"),
 		Dir:            "../../.git",
 		URL:            "git@github.com:giantswarm/gitrepo.git",
 	}
