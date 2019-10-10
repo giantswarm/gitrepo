@@ -1,13 +1,12 @@
 version: 2.1
 orbs:
-  architect: giantswarm/architect@0.4.2
+  architect: giantswarm/architect@dev:go-test
 
 workflows:
   go-build:
     jobs:
-      - architect/go-build:
-          name: go-build-gitrepo
-          binary: gitrepo
+      - architect/go-test:
+          name: go-test-gitrepo
           # Needed to trigger job also on git tag.
           filters:
             tags:
