@@ -98,7 +98,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	{
 		tagsIter, err := repo.Tags()
 		if err != nil {
-			log.Fatal(err)
+			return "", microerror.Mask(err)
 		}
 		defer tagsIter.Close()
 		for {
