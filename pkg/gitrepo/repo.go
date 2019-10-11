@@ -149,7 +149,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				lastTag = "v0.0.0"
 				break
 			} else if err != nil {
-				log.Fatal(err)
+				return "", microerror.Mask(err)
 			}
 		}
 
