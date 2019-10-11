@@ -116,7 +116,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	{
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 		if err != nil {
-			log.Fatal(err)
+			return "", microerror.Mask(err)
 		}
 
 		commit, err = repo.CommitObject(*hash)
