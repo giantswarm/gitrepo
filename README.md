@@ -10,7 +10,7 @@ Here is how to use it:
 ```go
 c := Config{
 	AuthBasicToken: "github-token",
-	Dir:            "/tmp/some-repo",
+	Dir:            "/path/to/some-repo",
 	URL:            "git@github.com:giantswarm/some-repo.git",
 }
 repo, err := New(c)
