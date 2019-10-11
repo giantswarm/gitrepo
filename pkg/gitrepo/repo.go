@@ -113,9 +113,12 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 	var commit *object.Commit
 	{
-		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
+		hash, err := repo.ResolveRevision(plumbing.Revision("origin/" + ref))
 		if err != nil {
-			return "", microerror.Mask(err)
+			hash, err = repo.ResolveRevision(plumbing.Revision(ref))
+			if err != nil {
+				return "", microerror.Mask(err)
+			}
 		}
 
 		commit, err = repo.CommitObject(*hash)
