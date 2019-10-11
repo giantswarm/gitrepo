@@ -3,7 +3,6 @@ package gitrepo
 import (
 	"context"
 	"io"
-	"log"
 
 	"github.com/giantswarm/microerror"
 	"github.com/go-errors/errors"
