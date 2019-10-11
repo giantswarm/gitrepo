@@ -41,7 +41,7 @@ func TestResolveVersion(t *testing.T) {
 
 	c := Config{
 		AuthBasicToken: os.Getenv("GITHUB_BOT_TOKEN"),
-		Dir:            "../../.git",
+		Dir:            "/tmp/gitrepo",
 		URL:            "git@github.com:giantswarm/gitrepo.git",
 	}
 	repo, err := New(c)
@@ -50,6 +50,11 @@ func TestResolveVersion(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
+	err = repo.EnsureUpToDate(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	for _, test := range testCases {
 		version, err := repo.ResolveVersion(ctx, test.Ref)
