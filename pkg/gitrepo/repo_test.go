@@ -12,21 +12,30 @@ func TestResolveVersion(t *testing.T) {
 		ExpectedVersion string
 	}{
 		{
+			// untagged version
 			Ref:             "2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
 			ExpectedVersion: "v0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
 		},
 		{
+			// tagged version
 			Ref:             "d1dcd7e42b044858f14ad51ea68e2809c16deb84",
 			ExpectedVersion: "test-tag",
 		},
-		{
-			Ref:             "test-branch",
-			ExpectedVersion: "test-tag",
-		},
 		//{
+		//      // above tagged version
 		//	Ref:             "next sha",
 		//	ExpectedVersion: "test-tag-d1dcd7e42b044858f14ad51ea68e2809c16deb84",
 		//},
+		{
+			// branch reference
+			Ref:             "test-branch",
+			ExpectedVersion: "test-tag",
+		},
+		{
+			// tag reference
+			Ref:             "test-tag",
+			ExpectedVersion: "test-tag",
+		},
 	}
 
 	c := Config{
