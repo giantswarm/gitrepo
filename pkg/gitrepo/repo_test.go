@@ -8,33 +8,33 @@ import (
 // TestResolveVersion tests ResolveVersion method which resolve a git reference and find the project version for it.
 func TestResolveVersion(t *testing.T) {
 	testCases := []struct {
-		Ref             string
-		ExpectedVersion string
+		ref             string
+		expectedVersion string
 	}{
 		{
 			// untagged version
-			Ref:             "2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
-			ExpectedVersion: "v0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
+			ref:             "2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
+			expectedVersion: "v0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
 		},
 		{
 			// tagged version
-			Ref:             "d1dcd7e42b044858f14ad51ea68e2809c16deb84",
-			ExpectedVersion: "test-tag",
+			ref:             "d1dcd7e42b044858f14ad51ea68e2809c16deb84",
+			expectedVersion: "test-tag",
 		},
 		{
 			// above tagged version
-			Ref:             "b62b39c5f762eae26979715599a0a9226547ef5e",
-			ExpectedVersion: "test-tag-b62b39c5f762eae26979715599a0a9226547ef5e",
+			ref:             "b62b39c5f762eae26979715599a0a9226547ef5e",
+			expectedVersion: "test-tag-b62b39c5f762eae26979715599a0a9226547ef5e",
 		},
 		{
 			// branch reference
-			Ref:             "test-branch",
-			ExpectedVersion: "test-tag",
+			ref:             "test-branch",
+			expectedVersion: "test-tag",
 		},
 		{
 			// tag reference
-			Ref:             "test-tag",
-			ExpectedVersion: "test-tag",
+			ref:             "test-tag",
+			expectedVersion: "test-tag",
 		},
 	}
 
@@ -55,12 +55,12 @@ func TestResolveVersion(t *testing.T) {
 	}
 
 	for _, test := range testCases {
-		version, err := repo.ResolveVersion(ctx, test.Ref)
+		version, err := repo.ResolveVersion(ctx, test.ref)
 		if err != nil {
 			t.Errorf("%#v", err)
 		}
-		if version != test.ExpectedVersion {
-			t.Errorf("got %q, expected %q\n", version, test.ExpectedVersion)
+		if version != test.expectedVersion {
+			t.Errorf("got %q, expected %q\n", version, test.expectedVersion)
 		}
 	}
 }
