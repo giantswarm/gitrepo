@@ -2,7 +2,6 @@ package gitrepo
 
 import (
 	"context"
-	"os"
 	"testing"
 )
 
@@ -40,9 +39,8 @@ func TestResolveVersion(t *testing.T) {
 	}
 
 	c := Config{
-		AuthBasicToken: os.Getenv("GITHUB_BOT_TOKEN"),
-		Dir:            "/tmp/gitrepo",
-		URL:            "git@github.com:giantswarm/gitrepo.git",
+		Dir: "/tmp/gitrepo",
+		URL: "git@github.com:giantswarm/gitrepo.git",
 	}
 	repo, err := New(c)
 	if err != nil {
