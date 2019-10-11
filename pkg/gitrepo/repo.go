@@ -79,7 +79,7 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 
 	err = repo.Fetch(fetchOpts)
 	if errors.Is(err, git.NoErrAlreadyUpToDate) {
-		// Fall trough.
+		// Fall through.
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
