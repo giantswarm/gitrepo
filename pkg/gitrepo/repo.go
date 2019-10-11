@@ -3,6 +3,7 @@ package gitrepo
 import (
 	"context"
 	"io"
+	"regexp"
 	"strings"
 
 	"github.com/giantswarm/microerror"
@@ -16,6 +17,8 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
+
+var tagRegex = regexp.MustCompile(`^v?[0-9]+\.[0-9]+\.[0-9]+`)
 
 type Config struct {
 	AuthBasicToken string
@@ -113,7 +116,9 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			} else if err != nil {
 				return "", microerror.Mask(err)
 			}
-			tags[tag.Hash().String()] = tag.Name().Short()
+			if tagRegex.MatchString(tag.Name().Short()) {
+				tags[tag.Hash().String()] = tag.Name().Short()
+			}
 		}
 	}
 
