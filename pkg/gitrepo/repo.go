@@ -2,6 +2,7 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"regexp"
 	"strings"
@@ -117,7 +118,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				return "", microerror.Mask(err)
 			}
 			if tagRegex.MatchString(tag.Name().Short()) {
-				tags[tag.Hash().String()] = tag.Name().Short()
+				tags[tag.Hash().String()] = strings.TrimPrefix(strings.TrimSpace(tag.Name().Short()), "v")
 			}
 		}
 	}
@@ -154,7 +155,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 		for {
 			tag, ok := tags[c.Hash.String()]
 			if ok {
-				lastTag = strings.TrimPrefix(strings.TrimSpace(tag), "v")
+				lastTag = tag
 				break
 			}
 			c, err = c.Parent(0)
