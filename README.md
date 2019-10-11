@@ -15,6 +15,6 @@ c := Config{
 }
 repo, err := New(c)
 version, err := repo.ResolveVersion(ctx, "master")
-// version is v0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca
+// version is 0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca
 ```
 
