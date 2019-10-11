@@ -1,5 +1,5 @@
-[![CircleCI](https://circleci.com/gh/giantswarm/gitrepo.svg?style=shield)](https://circleci.com/gh/giantswarm/gitrepo)
 [![GoDoc](https://godoc.org/github.com/giantswarm/gitrepo?status.svg)](http://godoc.org/github.com/giantswarm/gitrepo)
+[![CircleCI](https://circleci.com/gh/giantswarm/gitrepo.svg?style=shield)](https://circleci.com/gh/giantswarm/gitrepo)
 
 # gitrepo
 
