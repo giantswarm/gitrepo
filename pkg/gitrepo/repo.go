@@ -121,7 +121,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 		commit, err = repo.CommitObject(*hash)
 		if err != nil {
-			log.Fatal(err)
+			return "", microerror.Mask(err)
 		}
 	}
 
