@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+// TestResolveVersion tests ResolveVersion method which resolve a git reference and find the project version for it.
 func TestResolveVersion(t *testing.T) {
 	testCases := []struct {
 		Ref             string
