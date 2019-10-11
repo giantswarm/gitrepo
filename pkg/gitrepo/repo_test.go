@@ -16,7 +16,7 @@ func TestResolveVersion(t *testing.T) {
 		{
 			name:            "case 0: untagged version",
 			inputRef:        "2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
-			expectedVersion: "v0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
+			expectedVersion: "0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca",
 		},
 		{
 			name:            "case 1: tagged version",
