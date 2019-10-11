@@ -17,11 +17,15 @@ func TestResolveVersion(t *testing.T) {
 		},
 		{
 			Ref:             "d1dcd7e42b044858f14ad51ea68e2809c16deb84",
-			ExpectedVersion: "test",
+			ExpectedVersion: "test-tag",
+		},
+		{
+			Ref:             "test-branch",
+			ExpectedVersion: "test-tag",
 		},
 		//{
 		//	Ref:             "next sha",
-		//	ExpectedVersion: "test-next sha",
+		//	ExpectedVersion: "test-tag-d1dcd7e42b044858f14ad51ea68e2809c16deb84",
 		//},
 	}
 
