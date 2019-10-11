@@ -2,6 +2,7 @@ package gitrepo
 
 import (
 	"context"
+	"strconv"
 	"testing"
 )
 
@@ -55,13 +56,15 @@ func TestResolveVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, test := range testCases {
-		version, err := repo.ResolveVersion(ctx, test.inputRef)
-		if err != nil {
-			t.Errorf("%#v", err)
-		}
-		if version != test.expectedVersion {
-			t.Errorf("got %q, expected %q\n", version, test.expectedVersion)
-		}
+	for i, test := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			version, err := repo.ResolveVersion(ctx, test.inputRef)
+			if err != nil {
+				t.Errorf("%#v", err)
+			}
+			if version != test.expectedVersion {
+				t.Errorf("got %q, expected %q\n", version, test.expectedVersion)
+			}
+		})
 	}
 }
