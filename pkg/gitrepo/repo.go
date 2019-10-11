@@ -106,7 +106,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			if errors.Is(err, io.EOF) {
 				break
 			} else if err != nil {
-				log.Fatal(err)
+				return "", microerror.Mask(err)
 			}
 			tags[tag.Hash().String()] = tag.Name().Short()
 		}
