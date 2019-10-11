@@ -2,7 +2,6 @@ package gitrepo
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"regexp"
 	"strings"
