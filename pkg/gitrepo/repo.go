@@ -11,6 +11,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/plumbing"
 	"gopkg.in/src-d/go-git.v4/plumbing/cache"
 	"gopkg.in/src-d/go-git.v4/plumbing/object"
+	"gopkg.in/src-d/go-git.v4/plumbing/transport"
 	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
@@ -24,19 +25,26 @@ type Config struct {
 type Repo struct {
 	url string
 
-	auth    *http.BasicAuth
+	auth    transport.AuthMethod
 	storage *filesystem.Storage
 }
 
 func New(config Config) (*Repo, error) {
-	if config.AuthBasicToken == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.AuthBasicToken must not be empty", config)
-	}
 	if config.Dir == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
 	}
 	if config.URL == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.URL must not be empty", config)
+	}
+
+	var auth transport.AuthMethod
+	{
+		if config.AuthBasicToken != "" {
+			auth = &http.BasicAuth{
+				Username: "can-be-anything-but-not-empty",
+				Password: config.AuthBasicToken,
+			}
+		}
 	}
 
 	fs := osfs.New(config.Dir)
@@ -45,10 +53,7 @@ func New(config Config) (*Repo, error) {
 	r := &Repo{
 		url: config.URL,
 
-		auth: &http.BasicAuth{
-			Username: "can-be-anything-but-not-empty",
-			Password: config.AuthBasicToken,
-		},
+		auth:    auth,
 		storage: storage,
 	}
 
