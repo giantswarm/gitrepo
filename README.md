@@ -1,33 +1,20 @@
-<!--
+[![GoDoc](https://godoc.org/github.com/giantswarm/gitrepo?status.svg)](http://godoc.org/github.com/giantswarm/gitrepo)
+[![CircleCI](https://circleci.com/gh/giantswarm/gitrepo.svg?style=shield)](https://circleci.com/gh/giantswarm/gitrepo)
 
-    TODO:
+# gitrepo
 
-    - Add the project to the CircleCI:
-      https://circleci.com/setup-project/gh/giantswarm/REPOSITORY_NAME
+This is a library used to compute a project version given a git reference.
 
-    - Import RELEASE_TOKEN variable from template repository for the builds:
-      https://circleci.com/gh/giantswarm/REPOSITORY_NAME/edit#env-vars
+Here is how to use it:
 
-    - Change the badge (with style=shield):
-      https://circleci.com/gh/giantswarm/REPOSITORY_NAME/edit#badges
-      If this is a private repository token with scope `status` will be needed.
+```go
+c := Config{
+	AuthBasicToken: "github-token",
+	Dir:            "/path/to/some-repo",
+	URL:            "git@github.com:giantswarm/some-repo.git",
+}
+repo, err := New(c)
+version, err := repo.ResolveVersion(ctx, "master")
+// version is v0.0.0-2e7604b8b3806b20ff305eb4e1a852c784ba34ca
+```
 
-    - Change the top level header from `# template` to `# REPOSITORY_NAME` and
-      add appropriate description.
-
-    - If the repository is public consider adding godoc badge. This should be
-      the first badge separated with a single space.
-      [![GoDoc](https://godoc.org/github.com/giantswarm/REPOSITORY_NAME?status.svg)](http://godoc.org/github.com/giantswarm/REPOSITORY_NAME)
-
--->
-[![CircleCI](https://circleci.com/gh/giantswarm/template.svg?style=shield&circle-token=cbabd7d13186f190fca813db4f0c732b026f5f6c)](https://circleci.com/gh/giantswarm/template)
-
-# template
-
-This is a template repository containing some basic files every repository
-needs.
-
-To use it just hit `Use this template` button or [this
-link][generate].
-
-[generate]: https://github.com/giantswarm/template/generate
