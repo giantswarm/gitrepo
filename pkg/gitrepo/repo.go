@@ -2,7 +2,6 @@ package gitrepo
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"regexp"
 	"sort"
@@ -183,9 +182,6 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			// Sort commits in the queue by commit date in
 			// descending order to find the most recent tag first.
 			sort.Sort(commitSlice(queue))
-			for i, c := range queue {
-				fmt.Println(i, c.Hash.String())
-			}
 		}
 
 		version = lastTag + "-" + commit.Hash.String()
