@@ -38,9 +38,6 @@ func New(config Config) (*Repo, error) {
 	if config.Dir == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
 	}
-	if config.URL == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.URL must not be empty", config)
-	}
 
 	var auth transport.AuthMethod
 	{
@@ -54,6 +51,31 @@ func New(config Config) (*Repo, error) {
 
 	fs := osfs.New(config.Dir)
 	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{ExclusiveAccess: true})
+
+	// When URL is not configured assume the repository is cloned on disk
+	// and take the URL or origin remote.
+	if config.URL == "" {
+		repo, err := git.Open(storage, nil)
+		if err != nil {
+			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to open repository with error %#q", config, err)
+		}
+
+		remoteName := "origin"
+
+		remote, err := repo.Remote(remoteName)
+		if err != nil {
+			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)
+		}
+
+		// According to
+		// https://godoc.org/gopkg.in/src-d/go-git.v4/config#RemoteConfig:
+		//
+		//	URLs the URLs of a remote repository. It must be
+		//	non-empty. Fetch will always use the first URL, while
+		//	push will use all of them.
+		//
+		config.URL = remote.Config().URLs[0]
+	}
 
 	r := &Repo{
 		url: config.URL,
