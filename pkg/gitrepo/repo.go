@@ -2,7 +2,6 @@ package gitrepo
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"regexp"
 	"sort"
@@ -39,9 +38,6 @@ func New(config Config) (*Repo, error) {
 	if config.Dir == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
 	}
-	if config.URL == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.URL must not be empty", config)
-	}
 
 	var auth transport.AuthMethod
 	{
@@ -55,6 +51,29 @@ func New(config Config) (*Repo, error) {
 
 	fs := osfs.New(config.Dir)
 	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{ExclusiveAccess: true})
+
+	// When URL is not configured assume the repository is cloned on disk
+	// and take the URL or origin remote.
+	if config.URL == "" {
+		repo, err := git.Open(storage, nil)
+		if err != nil {
+			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to open repository with error %#q", config, err)
+		}
+
+		remoteName := "origin"
+
+		remote, err := repo.Remote(remoteName)
+		if err != nil {
+			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)
+		}
+
+		urls := remote.Config().URLs
+		if len(urls) == 0 || urls[0] == "" {
+			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to %#q remote does not have set URLs", config, remoteName)
+		}
+
+		config.URL = urls[0]
+	}
 
 	r := &Repo{
 		url: config.URL,
@@ -183,9 +202,6 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			// Sort commits in the queue by commit date in
 			// descending order to find the most recent tag first.
 			sort.Sort(commitSlice(queue))
-			for i, c := range queue {
-				fmt.Println(i, c.Hash.String())
-			}
 		}
 
 		version = lastTag + "-" + commit.Hash.String()

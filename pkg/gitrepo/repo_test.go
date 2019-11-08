@@ -5,14 +5,62 @@ import (
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/giantswarm/microerror"
 )
 
-// TestResolveVersion tests ResolveVersion method which resolve a git reference
+// Test_New_optionalURL tests if proper URL from origin branch is taken from
+// existing repository if none is specified.
+func Test_New_optionalURL(t *testing.T) {
+	ctx := context.Background()
+
+	dir := "/tmp/gitrepo-test-new-optionalurl"
+	defer os.RemoveAll(dir)
+
+	url := "git@github.com:giantswarm/gitrepo-test.git"
+
+	// Clone the repo first.
+	{
+		c := Config{
+			Dir: dir,
+			URL: "git@github.com:giantswarm/gitrepo-test.git",
+		}
+
+		repo, err := New(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = repo.EnsureUpToDate(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want = %v", microerror.Stack(err), nil)
+		}
+	}
+
+	// Open the repo without specifying URL and check if it is set
+	// properly.
+	{
+		c := Config{
+			Dir: dir,
+		}
+
+		repo, err := New(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if repo.url != url {
+			t.Fatalf("repo.url = %#q, want %#q", repo.url, url)
+		}
+	}
+}
+
+// Test_ResolveVersion tests ResolveVersion method which resolve a git reference
 // and find the project version for it. Tested repository can be found here:
 //
 //	https://github.com/giantswarm/gitrepo-test.
 //
-func TestResolveVersion(t *testing.T) {
+func Test_ResolveVersion(t *testing.T) {
 	testCases := []struct {
 		name            string
 		inputRef        string
@@ -70,7 +118,7 @@ func TestResolveVersion(t *testing.T) {
 		},
 	}
 
-	dir := "/tmp/gitrepo-test"
+	dir := "/tmp/gitrepo-test-resolveversion"
 	defer os.RemoveAll(dir)
 
 	c := Config{
