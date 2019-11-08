@@ -67,12 +67,14 @@ func New(config Config) (*Repo, error) {
 			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)
 		}
 
-		urls := remote.Config().URLs
-		if len(urls) == 0 || urls[0] == "" {
-			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to %#q remote does not have set URLs", config, remoteName)
-		}
-
-		config.URL = urls[0]
+		// According to
+		// https://godoc.org/gopkg.in/src-d/go-git.v4/config#RemoteConfig:
+		//
+		//	URLs the URLs of a remote repository. It must be
+		//	non-empty. Fetch will always use the first URL, while
+		//	push will use all of them.
+		//
+		config.URL = remote.Config().URLs[0]
 	}
 
 	r := &Repo{
