@@ -2,8 +2,10 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/giantswarm/microerror"
@@ -150,19 +152,39 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	{
 		var lastTag string
 
-		c := commit
+		queue := []*object.Commit{
+			commit,
+		}
+
 		for {
+			if len(queue) == 0 {
+				lastTag = "0.0.0"
+				break
+			}
+
+			// Pop the first element from the queue.
+			c := queue[0]
+			queue = queue[1:]
+
+			// Check if this commit is tagged. If so the most
+			// recent tag is found and loop should be finished.
 			tag, ok := tags[c.Hash.String()]
 			if ok {
 				lastTag = tag
 				break
 			}
-			c, err = c.Parent(0)
-			if errors.Is(err, object.ErrParentNotFound) {
-				lastTag = "0.0.0"
-				break
-			} else if err != nil {
-				return "", microerror.Mask(err)
+
+			// Push all the parents to the queue.
+			c.Parents().ForEach(func(p *object.Commit) error {
+				queue = append(queue, p)
+				return nil
+			})
+
+			// Sort commits in the queue by commit date in
+			// descending order to find the most recent tag first.
+			sort.Sort(commitSlice(queue))
+			for i, c := range queue {
+				fmt.Println(i, c.Hash.String())
 			}
 		}
 
@@ -171,3 +193,9 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 	return version, nil
 }
+
+type commitSlice []*object.Commit
+
+func (p commitSlice) Len() int           { return len(p) }
+func (p commitSlice) Less(i, j int) bool { return p[i].Committer.When.After(p[j].Committer.When) }
+func (p commitSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
