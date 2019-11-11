@@ -12,6 +12,8 @@ import (
 // Test_New_optionalURL tests if proper URL from origin branch is taken from
 // existing repository if none is specified.
 func Test_New_optionalURL(t *testing.T) {
+	t.Parallel()
+
 	ctx := context.Background()
 
 	dir := "/tmp/gitrepo-test-new-optionalurl"
@@ -61,6 +63,8 @@ func Test_New_optionalURL(t *testing.T) {
 //	https://github.com/giantswarm/gitrepo-test.
 //
 func Test_ResolveVersion(t *testing.T) {
+	t.Parallel()
+
 	testCases := []struct {
 		name            string
 		inputRef        string
