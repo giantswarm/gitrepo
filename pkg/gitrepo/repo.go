@@ -266,7 +266,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 			// Sort commits in the queue by commit date in
 			// descending order to find the most recent tag first.
-			sort.Sort(commitSlice(queue))
+			sort.Slice(queue, func(i, j int) bool { return queue[i].Committer.When.After(queue[j].Committer.When) })
 		}
 
 		pseudoVersion = lastVersion + "-" + commit.Hash.String()
@@ -298,9 +298,3 @@ func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
 
 	return tags, nil
 }
-
-type commitSlice []*object.Commit
-
-func (p commitSlice) Len() int           { return len(p) }
-func (p commitSlice) Less(i, j int) bool { return p[i].Committer.When.After(p[j].Committer.When) }
-func (p commitSlice) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
