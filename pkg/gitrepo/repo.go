@@ -2,7 +2,6 @@ package gitrepo
 
 import (
 	"context"
-	"io"
 	"regexp"
 	"sort"
 	"strings"
@@ -119,30 +118,92 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	return nil
 }
 
+func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
+	repo, err := git.Open(r.storage, nil)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return head.Name().Short(), nil
+}
+
+func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
+	repo, err := git.Open(r.storage, nil)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return head.Hash().String(), nil
+}
+
+// HeadTag returns the tag for the HEAD ref.
+//
+// It returns error handled by IsNotFound if the HEAD ref is not tagged.
+func (r *Repo) HeadTag(ctx context.Context) (string, error) {
+	repo, err := git.Open(r.storage, nil)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	tagsBySHA, err := r.tags(repo)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	tags := tagsBySHA[head.Hash().String()]
+
+	if len(tags) == 0 {
+		return "", microerror.Maskf(notFoundError, "HEAD ref is not tagged")
+	}
+	if len(tags) > 1 {
+		return "", microerror.Maskf(executionFailedError, "HEAD ref has multiple tags %v", tags)
+	}
+
+	return tags[0], nil
+}
+
 func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	repo, err := git.Open(r.storage, nil)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
 
-	tags := map[string]string{}
+	versionsByHash := map[string]string{}
 	{
-		tagsIter, err := repo.Tags()
+
+		tagsByHash, err := r.tags(repo)
 		if err != nil {
 			return "", microerror.Mask(err)
 		}
-		defer tagsIter.Close()
-		for {
-			tag, err := tagsIter.Next()
-			if errors.Is(err, io.EOF) {
-				break
-			} else if err != nil {
-				return "", microerror.Mask(err)
-			}
-			if tagRegex.MatchString(tag.Name().Short()) {
-				tags[tag.Hash().String()] = strings.TrimPrefix(strings.TrimSpace(tag.Name().Short()), "v")
+		for hash, tags := range tagsByHash {
+			for _, t := range tags {
+				var versionTags []string
+				if tagRegex.MatchString(t) {
+					versionTags = append(versionTags, t)
+					versionsByHash[hash] = strings.TrimPrefix(t, "v")
+				}
+
+				if len(versionTags) > 1 {
+					return "", microerror.Maskf(executionFailedError, "multiple version tags %#v found for hash %#q", versionTags, hash)
+				}
 			}
 		}
+
 	}
 
 	var commit *object.Commit
@@ -162,16 +223,18 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	}
 
 	// When the commit is tagged return the tag.
-	tag, ok := tags[commit.Hash.String()]
-	if ok {
-		return tag, nil
+	{
+		version, ok := versionsByHash[commit.Hash.String()]
+		if ok {
+			return version, nil
+		}
 	}
 
 	// Otherwise find the first tagged parent and return it's tag glued
 	// with the SHA.
-	var version string
+	var pseudoVersion string
 	{
-		var lastTag string
+		var lastVersion string
 
 		queue := []*object.Commit{
 			commit,
@@ -179,7 +242,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 		for {
 			if len(queue) == 0 {
-				lastTag = "0.0.0"
+				lastVersion = "0.0.0"
 				break
 			}
 
@@ -189,9 +252,9 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 			// Check if this commit is tagged. If so the most
 			// recent tag is found and loop should be finished.
-			tag, ok := tags[c.Hash.String()]
+			v, ok := versionsByHash[c.Hash.String()]
 			if ok {
-				lastTag = tag
+				lastVersion = v
 				break
 			}
 
@@ -206,10 +269,34 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			sort.Sort(commitSlice(queue))
 		}
 
-		version = lastTag + "-" + commit.Hash.String()
+		pseudoVersion = lastVersion + "-" + commit.Hash.String()
 	}
 
-	return version, nil
+	return pseudoVersion, nil
+}
+
+func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
+	tagsIter, err := repo.Tags()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+	defer tagsIter.Close()
+
+	tags := map[string][]string{}
+
+	tagsIter.ForEach(func(tag *plumbing.Reference) error {
+		v := tags[tag.Hash().String()]
+		if v == nil {
+			v = []string{}
+		}
+		v = append(v, tag.Name().Short())
+
+		tags[tag.Hash().String()] = v
+
+		return nil
+	})
+
+	return tags, nil
 }
 
 type commitSlice []*object.Commit
