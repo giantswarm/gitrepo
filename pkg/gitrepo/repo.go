@@ -118,6 +118,65 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	return nil
 }
 
+func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
+	repo, err := git.Open(r.storage, nil)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return head.Name().Short(), nil
+}
+
+func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
+	repo, err := git.Open(r.storage, nil)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	return head.Hash().String(), nil
+}
+
+// HeadTag returns the tag for the HEAD ref.
+//
+// It returns error handled by IsNotFound if the HEAD ref is not tagged.
+func (r *Repo) HeadTag(ctx context.Context) (string, error) {
+	repo, err := git.Open(r.storage, nil)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	head, err := repo.Head()
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	tagsBySHA, err := r.tags(repo)
+	if err != nil {
+		return "", microerror.Mask(err)
+	}
+
+	tags := tagsBySHA[head.Hash().String()]
+
+	if len(tags) == 0 {
+		return "", microerror.Maskf(notFoundError, "HEAD ref is not tagged")
+	}
+	if len(tags) > 1 {
+		return "", microerror.Maskf(executionFailedError, "HEAD ref has multiple tags %v", tags)
+	}
+
+	return tags[0], nil
+}
+
 func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	repo, err := git.Open(r.storage, nil)
 	if err != nil {

@@ -3,10 +3,13 @@ package gitrepo
 import (
 	"context"
 	"os"
+	"reflect"
 	"strconv"
 	"testing"
 
 	"github.com/giantswarm/microerror"
+	"gopkg.in/src-d/go-git.v4"
+	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 // Test_New_optionalURL tests if proper URL from origin branch is taken from
@@ -57,12 +60,106 @@ func Test_New_optionalURL(t *testing.T) {
 	}
 }
 
-// Test_ResolveVersion tests ResolveVersion method which resolve a git reference
-// and find the project version for it. Tested repository can be found here:
+// Test_Repo_Head tests Repo.HeadBranch, Repo.HeadSHA and Repo.HeadTag methods.
+func Test_Repo_Head(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	var err error
+
+	dir := "/tmp/gitrepo-test-repo-headbranch"
+
+	// Checkout the gitrepo-test repository.
+	var repo *Repo
+	{
+		defer os.RemoveAll(dir)
+
+		c := Config{
+			Dir: dir,
+			URL: "git@github.com:giantswarm/gitrepo-test.git",
+		}
+		repo, err = New(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = repo.EnsureUpToDate(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// Test HeadBranch.
+	{
+		headBranch, err := repo.HeadBranch(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+		}
+		if !reflect.DeepEqual(headBranch, "master") {
+			t.Fatalf("headBranch = %v, want %v", headBranch, "master")
+		}
+	}
+
+	// Test HeadSHA.
+	{
+		var expectedHeadSHA string
+		{
+			ref, err := repo.storage.Reference(plumbing.Master)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			}
+
+			expectedHeadSHA = ref.Hash().String()
+		}
+
+		headSHA, err := repo.HeadSHA(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+		}
+		if !reflect.DeepEqual(headSHA, expectedHeadSHA) {
+			t.Fatalf("headSHA = %v, want %v", headSHA, expectedHeadSHA)
+		}
+	}
+
+	// Test HeadTag.
+	{
+		_, err := repo.HeadTag(ctx)
+		if !IsNotFound(err) {
+			t.Fatalf("err = %v, want %v", err, notFoundError)
+		}
+
+		// Create "test-tag" tag on HEAD.
+		{
+			gitRepo, err := git.Open(repo.storage, nil)
+
+			head, err := gitRepo.Head()
+			if err != nil {
+				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			}
+
+			_, err = gitRepo.CreateTag("test-tag", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			}
+		}
+
+		tag, err := repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+		}
+		if !reflect.DeepEqual(tag, "test-tag") {
+			t.Fatalf("tag = %v, want %v", tag, "test-tag")
+		}
+	}
+}
+
+// Test_Repo_ResolveVersion tests Repo.ResolveVersion method which resolve
+// a git reference and find the project version for it. Tested repository can
+// be found here:
 //
 //	https://github.com/giantswarm/gitrepo-test.
 //
-func Test_ResolveVersion(t *testing.T) {
+func Test_Repo_ResolveVersion(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -122,7 +219,7 @@ func Test_ResolveVersion(t *testing.T) {
 		},
 	}
 
-	dir := "/tmp/gitrepo-test-resolveversion"
+	dir := "/tmp/gitrepo-test-repo-resolveversion"
 	defer os.RemoveAll(dir)
 
 	c := Config{
