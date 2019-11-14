@@ -2,12 +2,14 @@ package gitrepo
 
 import (
 	"context"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/giantswarm/microerror"
 	"github.com/go-errors/errors"
+	"gopkg.in/src-d/go-billy.v4"
 	"gopkg.in/src-d/go-billy.v4/osfs"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
@@ -29,8 +31,9 @@ type Config struct {
 type Repo struct {
 	url string
 
-	auth    transport.AuthMethod
-	storage *filesystem.Storage
+	auth     transport.AuthMethod
+	storage  *filesystem.Storage
+	worktree billy.Filesystem
 }
 
 func New(config Config) (*Repo, error) {
@@ -48,13 +51,14 @@ func New(config Config) (*Repo, error) {
 		}
 	}
 
-	fs := osfs.New(config.Dir)
-	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{ExclusiveAccess: true})
+	worktree := osfs.New(config.Dir)
+	fs := osfs.New(filepath.Join(config.Dir, ".git"))
+	storage := filesystem.NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), filesystem.Options{})
 
 	// When URL is not configured assume the repository is cloned on disk
 	// and take the URL or origin remote.
 	if config.URL == "" {
-		repo, err := git.Open(storage, nil)
+		repo, err := git.Open(storage, worktree)
 		if err != nil {
 			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to open repository with error %#q", config, err)
 		}
@@ -79,8 +83,9 @@ func New(config Config) (*Repo, error) {
 	r := &Repo{
 		url: config.URL,
 
-		auth:    auth,
-		storage: storage,
+		auth:     auth,
+		storage:  storage,
+		worktree: worktree,
 	}
 
 	return r, nil
@@ -93,9 +98,9 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 		NoCheckout: true,
 	}
 
-	repo, err := git.Clone(r.storage, nil, cloneOpts)
+	repo, err := git.Clone(r.storage, r.worktree, cloneOpts)
 	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
-		repo, err = git.Open(r.storage, nil)
+		repo, err = git.Open(r.storage, r.worktree)
 		if err != nil {
 			return microerror.Mask(err)
 		}
@@ -119,7 +124,7 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 }
 
 func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
-	repo, err := git.Open(r.storage, nil)
+	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
@@ -133,7 +138,7 @@ func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
 }
 
 func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
-	repo, err := git.Open(r.storage, nil)
+	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
@@ -150,7 +155,7 @@ func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 //
 // It returns error handled by IsNotFound if the HEAD ref is not tagged.
 func (r *Repo) HeadTag(ctx context.Context) (string, error) {
-	repo, err := git.Open(r.storage, nil)
+	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
@@ -178,7 +183,7 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 }
 
 func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
-	repo, err := git.Open(r.storage, nil)
+	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return "", microerror.Mask(err)
 	}
