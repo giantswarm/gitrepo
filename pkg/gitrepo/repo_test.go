@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/giantswarm/microerror"
 	"gopkg.in/src-d/go-git.v4"
@@ -217,6 +218,11 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			inputRef:        "branch-of-1.0.0",
 			expectedVersion: "2.0.0-c3726de44a2bb1bd898fdbe5632a90841636fa82",
 		},
+		{
+			name:            "case 10: resolving complex tree with multiple common parents and long history",
+			inputRef:        "complex-tree",
+			expectedVersion: "0.0.0-a42e026e60b4c191ffb29430f439ad4b3aced71b",
+		},
 	}
 
 	dir := "/tmp/gitrepo-test-repo-resolveversion"
@@ -242,12 +248,26 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Log(tc.name)
 
-			version, err := repo.ResolveVersion(ctx, tc.inputRef)
-			if err != nil {
-				t.Errorf("%#v", err)
-			}
-			if version != tc.expectedVersion {
-				t.Errorf("got %q, expected %q\n", version, tc.expectedVersion)
+			var err error
+			var version string
+
+			doneCh := make(chan struct{})
+			go func() {
+				version, err = repo.ResolveVersion(ctx, tc.inputRef)
+				err = microerror.Mask(err)
+				close(doneCh)
+			}()
+
+			select {
+			case <-time.After(15 * time.Second):
+				t.Fatalf("timeout after %v", 15*time.Second)
+			case <-doneCh:
+				if err != nil {
+					t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				}
+				if version != tc.expectedVersion {
+					t.Errorf("got %q, expected %q\n", version, tc.expectedVersion)
+				}
 			}
 		})
 	}
