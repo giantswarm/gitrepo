@@ -265,6 +265,17 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 			// Push all the parents to the queue.
 			c.Parents().ForEach(func(p *object.Commit) error {
+				// If the commit is already in the queue skip
+				// it. This is possible multiple commits have
+				// the same parent. Adding all of them to the
+				// queue may lead in exponential growth of the
+				// queue resulting in extremely long execution.
+				for _, c := range queue {
+					if c.Hash == p.Hash {
+						return nil
+					}
+				}
+
 				queue = append(queue, p)
 				return nil
 			})
