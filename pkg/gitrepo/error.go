@@ -23,11 +23,11 @@ func IsInvalidConfig(err error) bool {
 	return microerror.Cause(err) == invalidConfigError
 }
 
-var notFoundError = &microerror.Error{
-	Kind: "notFoundError",
+var referenceNotFoundError = &microerror.Error{
+	Kind: "referenceNotFoundError",
 }
 
-// IsNotFound asserts notFoundError.
-func IsNotFound(err error) bool {
-	return microerror.Cause(err) == notFoundError
+// IsReferenceNotFound asserts referenceNotFoundError.
+func IsReferenceNotFound(err error) bool {
+	return microerror.Cause(err) == referenceNotFoundError
 }

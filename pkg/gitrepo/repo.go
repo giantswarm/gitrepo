@@ -153,7 +153,8 @@ func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 
 // HeadTag returns the tag for the HEAD ref.
 //
-// It returns error handled by IsNotFound if the HEAD ref is not tagged.
+// It returns error handled by IsReferenceNotFound if the HEAD ref is not
+// tagged.
 func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
@@ -173,7 +174,7 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 	tags := tagsBySHA[head.Hash().String()]
 
 	if len(tags) == 0 {
-		return "", microerror.Maskf(notFoundError, "HEAD ref is not tagged")
+		return "", microerror.Maskf(referenceNotFoundError, "HEAD ref is not tagged")
 	}
 	if len(tags) > 1 {
 		return "", microerror.Maskf(executionFailedError, "HEAD ref has multiple tags %v", tags)
@@ -182,6 +183,15 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 	return tags[0], nil
 }
 
+// ResolveVersion resolves version of a reference. It may be a version in
+// format "X.Y.Z" if the reference is tagged with tag in format "vX.Y.Z" (note
+// that the "v" prefix is trimmed). Otherwise it will be a pseudo-version in
+// format "X.Y.Z-SHA" where "X.Y.Z" part is the value taken from the most
+// recent parent commit tagged with "vX.Y.Z" or "0.0.0" if no such parent exist
+// and "SHA" part is the git SHA of the given reference.
+//
+// It returns error handled by IsReferenceNotFound if the HEAD ref is not
+// tagged.
 func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
@@ -213,12 +223,11 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 	var commit *object.Commit
 	{
-		hash, err := repo.ResolveRevision(plumbing.Revision("origin/" + ref))
-		if err != nil {
-			hash, err = repo.ResolveRevision(plumbing.Revision(ref))
-			if err != nil {
-				return "", microerror.Mask(err)
-			}
+		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return "", microerror.Maskf(referenceNotFoundError, "%#q", ref)
+		} else if err != nil {
+			return "", microerror.Mask(err)
 		}
 
 		commit, err = repo.CommitObject(*hash)
