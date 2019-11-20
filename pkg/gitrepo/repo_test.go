@@ -288,12 +288,6 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				}
 			}
 
-			h, err := repo.HeadSHA(context.Background())
-			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
-			}
-			t.Logf("head=%s", h)
-
 			doneCh := make(chan struct{})
 			go func() {
 				version, err = repo.ResolveVersion(ctx, tc.inputRef)
