@@ -273,7 +273,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			}
 
 			// Push all the parents to the queue.
-			c.Parents().ForEach(func(p *object.Commit) error {
+			err = c.Parents().ForEach(func(p *object.Commit) error {
 				// If the commit is already in the queue skip
 				// it. This is possible multiple commits have
 				// the same parent. Adding all of them to the
@@ -288,6 +288,9 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				queue = append(queue, p)
 				return nil
 			})
+			if err != nil {
+				return "", microerror.Mask(err)
+			}
 
 			// Sort commits in the queue by commit date in
 			// descending order to find the most recent tag first.
@@ -301,25 +304,60 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 }
 
 func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
-	tagsIter, err := repo.Tags()
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-	defer tagsIter.Close()
-
 	tags := map[string][]string{}
 
-	tagsIter.ForEach(func(tag *plumbing.Reference) error {
-		v := tags[tag.Hash().String()]
-		if v == nil {
-			v = []string{}
+	// Get lightweight tags.
+	{
+		tagsIter, err := repo.Tags()
+		if err != nil {
+			return nil, microerror.Mask(err)
 		}
-		v = append(v, tag.Name().Short())
+		defer tagsIter.Close()
 
-		tags[tag.Hash().String()] = v
+		err = tagsIter.ForEach(func(tag *plumbing.Reference) error {
+			v := tags[tag.Hash().String()]
+			if v == nil {
+				v = []string{}
+			}
+			v = append(v, tag.Name().Short())
 
-		return nil
-	})
+			tags[tag.Hash().String()] = v
+
+			return nil
+		})
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
+
+	// Get tag objects.
+	{
+		tagObjectsIter, err := repo.TagObjects()
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+		defer tagObjectsIter.Close()
+
+		err = tagObjectsIter.ForEach(func(tag *object.Tag) error {
+			commit, err := tag.Commit()
+			if err != nil {
+				return microerror.Mask(err)
+			}
+
+			v := tags[commit.Hash.String()]
+			if v == nil {
+				v = []string{}
+			}
+			v = append(v, tag.Name)
+
+			tags[commit.Hash.String()] = v
+
+			return nil
+		})
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+	}
 
 	return tags, nil
 }
