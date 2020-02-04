@@ -39,7 +39,7 @@ func Test_New_optionalURL(t *testing.T) {
 
 		err = repo.EnsureUpToDate(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want = %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want = %v", microerror.JSON(err), nil)
 		}
 	}
 
@@ -95,7 +95,7 @@ func Test_Repo_Head(t *testing.T) {
 	{
 		headBranch, err := repo.HeadBranch(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(headBranch, "master") {
 			t.Fatalf("headBranch = %v, want %v", headBranch, "master")
@@ -108,7 +108,7 @@ func Test_Repo_Head(t *testing.T) {
 		{
 			ref, err := repo.storage.Reference(plumbing.Master)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 
 			expectedHeadSHA = ref.Hash().String()
@@ -116,7 +116,7 @@ func Test_Repo_Head(t *testing.T) {
 
 		headSHA, err := repo.HeadSHA(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(headSHA, expectedHeadSHA) {
 			t.Fatalf("headSHA = %v, want %v", headSHA, expectedHeadSHA)
@@ -136,18 +136,18 @@ func Test_Repo_Head(t *testing.T) {
 
 			head, err := gitRepo.Head()
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 
 			_, err = gitRepo.CreateTag("test-tag", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 		}
 
 		tag, err := repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(tag, "test-tag") {
 			t.Fatalf("tag = %v, want %v", tag, "test-tag")
@@ -284,7 +284,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				ref := plumbing.NewReferenceFromStrings(plumbing.HEAD.String(), tc.inputHeadTarget)
 				err := repo.storage.SetReference(ref)
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 				}
 			}
 
