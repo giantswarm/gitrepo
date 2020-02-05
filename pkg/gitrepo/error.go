@@ -10,11 +10,11 @@ import "github.com/giantswarm/microerror"
 //
 //     https://github.com/giantswarm/fmt/blob/master/go/errors.md#matching-errors
 //
-var executionFailedError = microerror.Error{
+var executionFailedError = &microerror.Error{
 	Kind: "executionFailedError",
 }
 
-var invalidConfigError = microerror.Error{
+var invalidConfigError = &microerror.Error{
 	Kind: "invalidConfigError",
 }
 
@@ -23,7 +23,7 @@ func IsInvalidConfig(err error) bool {
 	return microerror.Cause(err) == invalidConfigError
 }
 
-var referenceNotFoundError = microerror.Error{
+var referenceNotFoundError = &microerror.Error{
 	Kind: "referenceNotFoundError",
 }
 

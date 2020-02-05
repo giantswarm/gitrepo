@@ -3,7 +3,8 @@ module github.com/giantswarm/gitrepo
 go 1.13
 
 require (
-	github.com/giantswarm/microerror v0.0.0-20200203114336-f7b2fab28df3
+	github.com/giantswarm/microerror v0.1.1-0.20200205143715-01b76f66cae6
+	github.com/giantswarm/micrologger v0.0.0-20200205144836-079154bcae45 // indirect
 	github.com/go-errors/errors v1.0.1
 	github.com/juju/errgo v0.0.0-20140925100237-08cceb5d0b53 // indirect
 	golang.org/x/net v0.0.0-20191112182307-2180aed22343 // indirect
