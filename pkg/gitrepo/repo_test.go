@@ -319,8 +319,9 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 }
 
 // Test_Repo_GetProjectVersion tests Repo.GetProjectVersion method which parses
-// the version from pkg/project.go. Tested repository can
-// be found here:
+// the version from pkg/project/project.go.
+//
+// Tested repository can be found here:
 //
 //	https://github.com/giantswarm/gitrepo-test.
 //
@@ -348,8 +349,7 @@ func Test_Repo_GetProjectVersion(t *testing.T) {
 
 	c := Config{
 		Dir: dir,
-		URL: "git@github.com:giantswarm/release-operator.git",
-		//URL: "git@github.com:giantswarm/gitrepo-test.git",
+		URL: "git@github.com:giantswarm/gitrepo-test.git",
 	}
 	repo, err := New(c)
 	if err != nil {
