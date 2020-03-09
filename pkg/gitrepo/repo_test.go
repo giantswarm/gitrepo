@@ -317,3 +317,73 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 		})
 	}
 }
+
+// Test_Repo_GetProjectVersion tests Repo.GetProjectVersion method which parses
+// the version from pkg/project.go. Tested repository can
+// be found here:
+//
+//	https://github.com/giantswarm/gitrepo-test.
+//
+func Test_Repo_GetProjectVersion(t *testing.T) {
+	t.Parallel()
+
+	const masterTarget = "ref: refs/heads/master"
+
+	testCases := []struct {
+		name            string
+		inputHeadTarget string
+		inputRef        string
+		expectedVersion string
+		errorMatcher    func(err error) bool
+	}{
+		{
+			name:            "case 0: n/a version",
+			inputHeadTarget: masterTarget,
+			expectedVersion: "1.0.0",
+		},
+	}
+
+	dir := "/tmp/gitrepo-test-repo-getprojectversion"
+	defer os.RemoveAll(dir)
+
+	c := Config{
+		Dir: dir,
+		URL: "git@github.com:giantswarm/release-operator.git",
+		//URL: "git@github.com:giantswarm/gitrepo-test.git",
+	}
+	repo, err := New(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	err = repo.EnsureUpToDate(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Log(tc.name)
+
+			version, err := repo.GetProjectVersion("")
+			t.Logf("version %#q\n", version)
+
+			switch {
+			case err == nil && tc.errorMatcher == nil:
+				// correct; carry on
+			case err != nil && tc.errorMatcher == nil:
+				t.Fatalf("error == %#v, want nil", err)
+			case err == nil && tc.errorMatcher != nil:
+				t.Fatalf("error == nil, want non-nil")
+			case !tc.errorMatcher(err):
+				t.Fatalf("error == %#v, want matching", err)
+			}
+
+			if version != tc.expectedVersion {
+				t.Errorf("got %q, expected %q\n", version, tc.expectedVersion)
+			}
+		})
+	}
+}
