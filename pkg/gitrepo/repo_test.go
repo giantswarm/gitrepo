@@ -367,7 +367,7 @@ func Test_Repo_GetProjectVersion(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Log(tc.name)
 
-			version, err := repo.GetProjectVersion("")
+			version, err := repo.GetProjectVersion()
 			t.Logf("version %#q\n", version)
 
 			switch {
