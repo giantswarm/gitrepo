@@ -2,14 +2,10 @@ package gitrepo
 
 import (
 	"context"
-	"go/ast"
-	"go/parser"
-	"go/token"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/giantswarm/microerror"
@@ -308,75 +304,35 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	return pseudoVersion, nil
 }
 
-// GetProjectVersion retrieves version stored in project's Go source code.
-// It looks up the value of variable `version` in `pkg/project/project.go` file
-// on master branch.
-func (r *Repo) GetProjectVersion() (string, error) {
-	fileName := "pkg/project/project.go"
-	varName := "version"
-
+// GetFile retrieves content of file stored at path on the master branch.
+func (r *Repo) GetFileContent(path string) ([]byte, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	worktree, err := repo.Worktree()
 	if err != nil {
-		return "", microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	// When empty CheckoutOptions defaults to master branch.
 	err = worktree.Checkout(&git.CheckoutOptions{})
 	if err != nil {
-		return "", microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
-	file, err := worktree.Filesystem.Open(fileName)
+	file, err := worktree.Filesystem.Open(path)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
 	content, err := ioutil.ReadAll(file)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return nil, microerror.Mask(err)
 	}
 
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, file.Name(), content, 0)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	value, err := parseString(node, varName)
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	return value, nil
-}
-
-// parseString returns the value of the variable varName found in r AbstractSyntaxTree.
-func parseString(r ast.Node, varName string) (value string, err error) {
-	ast.Inspect(r, func(n ast.Node) bool {
-		d, ok := n.(*ast.ValueSpec)
-		if ok {
-			for _, id := range d.Names {
-				if id.Name == varName {
-					v := id.Obj.Decl.(*ast.ValueSpec).Values[0].(*ast.BasicLit)
-					if v.Kind == token.STRING {
-						value, err = strconv.Unquote(v.Value)
-					}
-				}
-			}
-		}
-		return true
-	})
-
-	if err != nil {
-		return "", microerror.Mask(err)
-	}
-
-	return value, nil
+	return content, nil
 }
 
 func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
