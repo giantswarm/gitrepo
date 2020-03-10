@@ -1,17 +1,24 @@
 package gitrepo
 
 import (
+	"bytes"
 	"context"
+	"flag"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/giantswarm/microerror"
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
+
+var update = flag.Bool("update", false, "update .golden files")
 
 // Test_New_optionalURL tests if proper URL from origin branch is taken from
 // existing repository if none is specified.
@@ -318,33 +325,32 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 	}
 }
 
-// Test_Repo_GetProjectVersion tests Repo.GetProjectVersion method which parses
-// the version from pkg/project/project.go.
+// Test_Repo_GetFileContent tests Repo.GetFileContent method which retrieves
+// the content of a file.
 //
 // Tested repository can be found here:
 //
 //	https://github.com/giantswarm/gitrepo-test.
 //
-func Test_Repo_GetProjectVersion(t *testing.T) {
+func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
 	const masterTarget = "ref: refs/heads/master"
 
 	testCases := []struct {
-		name            string
-		inputHeadTarget string
-		inputRef        string
-		expectedVersion string
-		errorMatcher    func(err error) bool
+		name         string
+		path         string
+		expected     string
+		errorMatcher func(err error) bool
 	}{
 		{
-			name:            "case 0: n/a version",
-			inputHeadTarget: masterTarget,
-			expectedVersion: "1.0.0",
+			name:     "case 0: get DCO file content",
+			path:     "DCO",
+			expected: "DCO",
 		},
 	}
 
-	dir := "/tmp/gitrepo-test-repo-getprojectversion"
+	dir := "/tmp/gitrepo-test-repo-getfilecontent"
 	defer os.RemoveAll(dir)
 
 	c := Config{
@@ -367,8 +373,7 @@ func Test_Repo_GetProjectVersion(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Log(tc.name)
 
-			version, err := repo.GetProjectVersion()
-			t.Logf("version %#q\n", version)
+			content, err := repo.GetFileContent(tc.path)
 
 			switch {
 			case err == nil && tc.errorMatcher == nil:
@@ -381,8 +386,20 @@ func Test_Repo_GetProjectVersion(t *testing.T) {
 				t.Fatalf("error == %#v, want matching", err)
 			}
 
-			if version != tc.expectedVersion {
-				t.Errorf("got %q, expected %q\n", version, tc.expectedVersion)
+			var expectedContent []byte
+			{
+				golden := filepath.Join("testdata", tc.expected)
+				if *update {
+					ioutil.WriteFile(golden, content, 0644)
+				}
+				expectedContent, err = ioutil.ReadFile(golden)
+				if err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			if !bytes.Equal(content, expectedContent) {
+				t.Errorf("\n%s\n", cmp.Diff(content, expectedContent))
 			}
 		})
 	}
