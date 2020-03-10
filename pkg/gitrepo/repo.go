@@ -3,6 +3,7 @@ package gitrepo
 import (
 	"context"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -323,7 +324,9 @@ func (r *Repo) GetFileContent(path string) ([]byte, error) {
 	}
 
 	file, err := worktree.Filesystem.Open(path)
-	if err != nil {
+	if os.IsNotExist(err) {
+		return nil, microerror.Maskf(fileNotFoundError, "%#q", path)
+	} else if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
