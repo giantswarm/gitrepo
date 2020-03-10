@@ -348,6 +348,11 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			path:     "DCO",
 			expected: "DCO",
 		},
+		{
+			name:         "case 1: handle file not found error",
+			path:         "non/existent/file/path",
+			errorMatcher: IsFileNotFound,
+		},
 	}
 
 	dir := "/tmp/gitrepo-test-repo-getfilecontent"
@@ -386,20 +391,22 @@ func Test_Repo_GetFileContent(t *testing.T) {
 				t.Fatalf("error == %#v, want matching", err)
 			}
 
-			var expectedContent []byte
-			{
-				golden := filepath.Join("testdata", tc.expected)
-				if *update {
-					ioutil.WriteFile(golden, content, 0644)
+			if err == nil {
+				var expectedContent []byte
+				{
+					golden := filepath.Join("testdata", tc.expected)
+					if *update {
+						ioutil.WriteFile(golden, content, 0644)
+					}
+					expectedContent, err = ioutil.ReadFile(golden)
+					if err != nil {
+						t.Fatal(err)
+					}
 				}
-				expectedContent, err = ioutil.ReadFile(golden)
-				if err != nil {
-					t.Fatal(err)
-				}
-			}
 
-			if !bytes.Equal(content, expectedContent) {
-				t.Errorf("\n%s\n", cmp.Diff(content, expectedContent))
+				if !bytes.Equal(content, expectedContent) {
+					t.Errorf("\n%s\n", cmp.Diff(content, expectedContent))
+				}
 			}
 		})
 	}
