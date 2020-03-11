@@ -335,8 +335,6 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
-	const masterTarget = "ref: refs/heads/master"
-
 	testCases := []struct {
 		name         string
 		path         string
