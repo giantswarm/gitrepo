@@ -344,7 +344,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 		name         string
 		path         string
 		expected     string
-		branch       string
+		options      CheckoutOptions
 		errorMatcher func(err error) bool
 	}{
 		{
@@ -353,7 +353,19 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			expected: "DCO",
 		},
 		{
-			name:         "case 1: handle file not found error",
+			name:     "case 1: get DCO file content on branch-of-2.0.0 branch",
+			path:     "DCO",
+			expected: "DCO",
+			options:  CheckoutOptions{Branch: "branch-of-2.0.0"},
+		},
+		{
+			name:     "case 2: get DCO file content on v2.0.0 tag",
+			path:     "DCO",
+			expected: "DCO",
+			options:  CheckoutOptions{Tag: "v2.0.0"},
+		},
+		{
+			name:         "case 3: handle file not found error",
 			path:         "non/existent/file/path",
 			errorMatcher: IsFileNotFound,
 		},
@@ -382,7 +394,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Log(tc.name)
 
-			content, err := repo.GetFileContent(tc.path, CheckoutOptions{Branch: tc.branch})
+			content, err := repo.GetFileContent(tc.path, tc.options)
 
 			switch {
 			case err == nil && tc.errorMatcher == nil:

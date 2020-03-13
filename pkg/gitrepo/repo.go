@@ -325,10 +325,10 @@ func (r *Repo) GetFileContent(path string, options CheckoutOptions) ([]byte, err
 	// When empty CheckoutOptions defaults to master branch.
 	opt := &git.CheckoutOptions{}
 	if options.Branch != "" {
-		opt = &git.CheckoutOptions{Branch: plumbing.NewRemoteReferenceName("origin", options.Branch)}
+		opt.Branch = plumbing.NewRemoteReferenceName("origin", options.Branch)
 	}
 	if options.Tag != "" {
-		opt = &git.CheckoutOptions{Branch: plumbing.NewTagReferenceName(options.Tag)}
+		opt.Branch = plumbing.NewTagReferenceName(options.Tag)
 	}
 	err = worktree.Checkout(opt)
 	if err != nil {
