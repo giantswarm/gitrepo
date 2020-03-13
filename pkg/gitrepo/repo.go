@@ -309,7 +309,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	return pseudoVersion, nil
 }
 
-// GetFileContent retrieves content of file stored at path at version specified in options.
+// GetFileContent retrieves content of file stored at path on version specified in options.
 func (r *Repo) GetFileContent(path string, options CheckoutOptions) ([]byte, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
