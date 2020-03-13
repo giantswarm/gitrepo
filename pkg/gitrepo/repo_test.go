@@ -330,7 +330,12 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 //
 // Tested repository can be found here:
 //
-//	https://github.com/giantswarm/gitrepo.
+//	https://github.com/giantswarm/gitrepo-test.
+//
+// It uses golden file as reference and when changes are intentional,
+// they can be updated by providing -update flag for go test.
+//
+//	go test . -run Test_Repo_GetFileContent -update
 //
 func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
