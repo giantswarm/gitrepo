@@ -38,11 +38,6 @@ type Repo struct {
 	worktree billy.Filesystem
 }
 
-type CheckoutOptions struct {
-	Branch string
-	Tag    string
-}
-
 func New(config Config) (*Repo, error) {
 	if config.Dir == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
