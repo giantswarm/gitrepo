@@ -305,8 +305,9 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	return pseudoVersion, nil
 }
 
-// GetFileContent retrieves content of file stored at path on version specified in options.
-func (r *Repo) GetFileContent(path string, options CheckoutOptions) ([]byte, error) {
+// GetFileContent retrieves content of file stored at path on version specified in ref.
+// When empty ref defaults to master branch.
+func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -319,11 +320,12 @@ func (r *Repo) GetFileContent(path string, options CheckoutOptions) ([]byte, err
 
 	// When empty CheckoutOptions defaults to master branch.
 	opt := &git.CheckoutOptions{}
-	if options.Branch != "" {
-		opt.Branch = plumbing.NewRemoteReferenceName("origin", options.Branch)
-	}
-	if options.Tag != "" {
-		opt.Branch = plumbing.NewTagReferenceName(options.Tag)
+	if ref != "" {
+		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+		opt.Hash = *hash
 	}
 	err = worktree.Checkout(opt)
 	if err != nil {
