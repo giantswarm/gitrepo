@@ -330,25 +330,25 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 //
 // Tested repository can be found here:
 //
-//	https://github.com/giantswarm/gitrepo-test.
+//	https://github.com/giantswarm/gitrepo.
 //
 func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		name         string
-		path         string
-		expected     string
+		file         string
+		branch       string
 		errorMatcher func(err error) bool
 	}{
 		{
-			name:     "case 0: get DCO file content",
-			path:     "DCO",
-			expected: "DCO",
+			name:   "case 0: get DCO file content",
+			file:   "DCO",
+			branch: "parse-version",
 		},
 		{
 			name:         "case 1: handle file not found error",
-			path:         "non/existent/file/path",
+			file:         "non/existent/file/path",
 			errorMatcher: IsFileNotFound,
 		},
 	}
@@ -358,7 +358,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 
 	c := Config{
 		Dir: dir,
-		URL: "git@github.com:giantswarm/gitrepo-test.git",
+		URL: "git@github.com:giantswarm/gitrepo.git",
 	}
 	repo, err := New(c)
 	if err != nil {
@@ -376,7 +376,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Log(tc.name)
 
-			content, err := repo.GetFileContent(tc.path)
+			content, err := repo.GetFileContent(filepath.Join("pkg/gitrepo/testdata", tc.file), CheckoutOptions{Branch: tc.branch})
 
 			switch {
 			case err == nil && tc.errorMatcher == nil:
@@ -392,7 +392,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			if err == nil {
 				var expectedContent []byte
 				{
-					golden := filepath.Join("testdata", tc.expected)
+					golden := filepath.Join("testdata", tc.file)
 					if *update {
 						ioutil.WriteFile(golden, content, 0644)
 					}
