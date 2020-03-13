@@ -40,6 +40,7 @@ type Repo struct {
 
 type CheckoutOptions struct {
 	Branch string
+	Tag    string
 }
 
 func New(config Config) (*Repo, error) {
@@ -325,6 +326,9 @@ func (r *Repo) GetFileContent(path string, options CheckoutOptions) ([]byte, err
 	opt := &git.CheckoutOptions{}
 	if options.Branch != "" {
 		opt = &git.CheckoutOptions{Branch: plumbing.NewRemoteReferenceName("origin", options.Branch)}
+	}
+	if options.Tag != "" {
+		opt = &git.CheckoutOptions{Branch: plumbing.NewTagReferenceName(options.Tag)}
 	}
 	err = worktree.Checkout(opt)
 	if err != nil {
