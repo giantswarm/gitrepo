@@ -38,6 +38,10 @@ type Repo struct {
 	worktree billy.Filesystem
 }
 
+type CheckoutOptions struct {
+	Branch string
+}
+
 func New(config Config) (*Repo, error) {
 	if config.Dir == "" {
 		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
@@ -306,7 +310,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 }
 
 // GetFile retrieves content of file stored at path on the master branch.
-func (r *Repo) GetFileContent(path string) ([]byte, error) {
+func (r *Repo) GetFileContent(path string, options CheckoutOptions) ([]byte, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -318,7 +322,11 @@ func (r *Repo) GetFileContent(path string) ([]byte, error) {
 	}
 
 	// When empty CheckoutOptions defaults to master branch.
-	err = worktree.Checkout(&git.CheckoutOptions{})
+	opt := &git.CheckoutOptions{}
+	if options.Branch != "" {
+		opt = &git.CheckoutOptions{Branch: plumbing.NewRemoteReferenceName("origin", options.Branch)}
+	}
+	err = worktree.Checkout(opt)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
