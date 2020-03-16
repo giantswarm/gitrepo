@@ -23,6 +23,15 @@ func IsInvalidConfig(err error) bool {
 	return microerror.Cause(err) == invalidConfigError
 }
 
+var fileNotFoundError = &microerror.Error{
+	Kind: "fileNotFoundError",
+}
+
+// IsFileNotFound asserts fileNotFoundError.
+func IsFileNotFound(err error) bool {
+	return microerror.Cause(err) == fileNotFoundError
+}
+
 var referenceNotFoundError = &microerror.Error{
 	Kind: "referenceNotFoundError",
 }

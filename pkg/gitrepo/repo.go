@@ -2,6 +2,8 @@ package gitrepo
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -301,6 +303,48 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	}
 
 	return pseudoVersion, nil
+}
+
+// GetFileContent retrieves content of file stored at path on version specified in ref.
+// When empty ref defaults to master branch.
+func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
+	repo, err := git.Open(r.storage, r.worktree)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	// When empty CheckoutOptions defaults to master branch.
+	opt := &git.CheckoutOptions{}
+	if ref != "" {
+		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+		opt.Hash = *hash
+	}
+	err = worktree.Checkout(opt)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	file, err := worktree.Filesystem.Open(path)
+	if os.IsNotExist(err) {
+		return nil, microerror.Maskf(fileNotFoundError, "%#q", path)
+	} else if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return content, nil
 }
 
 func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {

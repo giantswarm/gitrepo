@@ -1,17 +1,24 @@
 package gitrepo
 
 import (
+	"bytes"
 	"context"
+	"flag"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/giantswarm/microerror"
+	"github.com/google/go-cmp/cmp"
 	"gopkg.in/src-d/go-git.v4"
 	"gopkg.in/src-d/go-git.v4/plumbing"
 )
+
+var update = flag.Bool("update", false, "update .golden files")
 
 // Test_New_optionalURL tests if proper URL from origin branch is taken from
 // existing repository if none is specified.
@@ -312,6 +319,109 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 
 				if version != tc.expectedVersion {
 					t.Errorf("got %q, expected %q\n", version, tc.expectedVersion)
+				}
+			}
+		})
+	}
+}
+
+// Test_Repo_GetFileContent tests Repo.GetFileContent method which retrieves
+// the content of a file.
+//
+// Tested repository can be found here:
+//
+//	https://github.com/giantswarm/gitrepo-test.
+//
+// It uses golden file as reference and when changes are intentional,
+// they can be updated by providing -update flag for go test.
+//
+//	go test . -run Test_Repo_GetFileContent -update
+//
+func Test_Repo_GetFileContent(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		path         string
+		expected     string
+		ref          string
+		errorMatcher func(err error) bool
+	}{
+		{
+			name:     "case 0: get DCO file content",
+			path:     "DCO",
+			expected: "DCO",
+		},
+		{
+			name:     "case 1: get DCO file content on branch-of-2.0.0 branch",
+			path:     "DCO",
+			expected: "DCO",
+			ref:      "origin/branch-of-2.0.0",
+		},
+		{
+			name:     "case 2: get DCO file content on v2.0.0 tag",
+			path:     "DCO",
+			expected: "DCO",
+			ref:      "v2.0.0",
+		},
+		{
+			name:         "case 3: handle file not found error",
+			path:         "non/existent/file/path",
+			errorMatcher: IsFileNotFound,
+		},
+	}
+
+	dir := "/tmp/gitrepo-test-repo-getfilecontent"
+	defer os.RemoveAll(dir)
+
+	c := Config{
+		Dir: dir,
+		URL: "git@github.com:giantswarm/gitrepo-test.git",
+	}
+	repo, err := New(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	err = repo.EnsureUpToDate(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Log(tc.name)
+
+			content, err := repo.GetFileContent(tc.path, tc.ref)
+
+			switch {
+			case err == nil && tc.errorMatcher == nil:
+				// correct; carry on
+			case err != nil && tc.errorMatcher == nil:
+				t.Fatalf("error == %#v, want nil", err)
+			case err == nil && tc.errorMatcher != nil:
+				t.Fatalf("error == nil, want non-nil")
+			case !tc.errorMatcher(err):
+				t.Fatalf("error == %#v, want matching", err)
+			}
+
+			if err == nil {
+				var expectedContent []byte
+				{
+					golden := filepath.Join("testdata", tc.expected)
+					if *update {
+						ioutil.WriteFile(golden, content, 0644)
+					}
+					expectedContent, err = ioutil.ReadFile(golden)
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				if !bytes.Equal(content, expectedContent) {
+					t.Errorf("\n%s\n", cmp.Diff(content, expectedContent))
 				}
 			}
 		})
