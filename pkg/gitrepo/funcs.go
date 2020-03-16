@@ -8,7 +8,7 @@ import (
 	"github.com/giantswarm/microerror"
 )
 
-// Toplevel shows the absolute path of the top-level directory. The output
+// Toplevel finds absolute path of top-level git directory. The output
 // is the same as:
 //
 //	git rev-parse --show-toplevel

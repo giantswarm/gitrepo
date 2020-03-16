@@ -93,6 +93,7 @@ func New(config Config) (*Repo, error) {
 	return r, nil
 }
 
+// EnsureUpToDate fetches latest changes from remote.
 func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	cloneOpts := &git.CloneOptions{
 		Auth:       r.auth,
@@ -125,6 +126,7 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	return nil
 }
 
+// HeadBranch returns branch name for the HEAD ref.
 func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
@@ -139,6 +141,7 @@ func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
 	return head.Name().Short(), nil
 }
 
+// HeadSHA returns sha for the HEAD ref.
 func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
@@ -153,7 +156,7 @@ func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 	return head.Hash().String(), nil
 }
 
-// HeadTag returns the tag for the HEAD ref.
+// HeadTag returns tag for the HEAD ref.
 //
 // It returns error handled by IsReferenceNotFound if the HEAD ref is not
 // tagged.
