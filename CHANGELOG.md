@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.1.0] - 2020-03-16
+## [0.1.1] - 2020-03-17
 
 ### Added
 
@@ -19,5 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `ResolveVersion`: resolves version of a reference.
 - Add `TopLevel`: finds absolute path of top-level git directory.
 
-[Unreleased]: https://github.com/giantswarm/architect-orb/compare/v0.1.0...HEAD
+## [0.1.0] - 2019-10-10
+
+### Added
+
+- Functions signature for `EnsureUpToDate` and `ResolveVersion`.
+
+[Unreleased]: https://github.com/giantswarm/architect-orb/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/giantswarm/architect-orb/releases/tag/v0.1.1
 [0.1.0]: https://github.com/giantswarm/architect-orb/releases/tag/v0.1.0
