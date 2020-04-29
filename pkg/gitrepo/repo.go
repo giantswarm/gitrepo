@@ -113,6 +113,7 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 
 	fetchOpts := &git.FetchOptions{
 		Auth:  r.auth,
+		Tags:  git.AllTags,
 		Force: true,
 	}
 
