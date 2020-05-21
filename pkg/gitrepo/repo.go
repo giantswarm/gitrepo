@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+    "github.com/coreos/go-semver/semver"
 	"github.com/giantswarm/microerror"
 	"github.com/go-errors/errors"
 	"gopkg.in/src-d/go-billy.v4"
@@ -302,6 +303,8 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 			sort.Slice(queue, func(i, j int) bool { return queue[i].Committer.When.After(queue[j].Committer.When) })
 		}
 
+		semverLastVersion := semver.New(lastVersion)
+		semverLastVersion.BumpPatch()
 		pseudoVersion = lastVersion + "-" + commit.Hash.String()
 	}
 
