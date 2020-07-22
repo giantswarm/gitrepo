@@ -68,6 +68,38 @@ func Test_New_optionalURL(t *testing.T) {
 	}
 }
 
+// Test_Repo_EnsureUpToDate_nosuchrepo tests that EnsureUpToDate returns
+// a repositoryNotFoundError when the repo does not exist.
+func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+	var err error
+
+	dir := "/tmp/gitrepo-test-ensureuptodate-nosuchrepo"
+	defer os.RemoveAll(dir)
+
+	// Checkout the gitrepo-test repository.
+	var repo *Repo
+	{
+		defer os.RemoveAll(dir)
+
+		c := Config{
+			Dir: dir,
+			URL: "git@github.com:giantswarm/does-not-exist.git",
+		}
+		repo, err = New(c)
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	err = repo.EnsureUpToDate(ctx)
+	if !IsRepositoryNotFound(err) {
+		t.Fatalf("err = %v, want %v", microerror.Stack(err), repositoryNotFoundError)
+	}
+}
+
 // Test_Repo_Head tests Repo.HeadBranch, Repo.HeadSHA and Repo.HeadTag methods.
 func Test_Repo_Head(t *testing.T) {
 	t.Parallel()
@@ -368,6 +400,12 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			name:         "case 3: handle file not found error",
 			path:         "non/existent/file/path",
 			errorMatcher: IsFileNotFound,
+		},
+		{
+			name:         "case 4: handle reference not found error",
+			path:         "DCO",
+			ref:          "does-not-exist",
+			errorMatcher: IsReferenceNotFound,
 		},
 	}
 

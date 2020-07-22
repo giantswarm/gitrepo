@@ -102,7 +102,9 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	}
 
 	repo, err := git.Clone(r.storage, r.worktree, cloneOpts)
-	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+	if errors.Is(err, transport.ErrRepositoryNotFound) {
+		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
+	} else if errors.Is(err, git.ErrRepositoryAlreadyExists) {
 		repo, err = git.Open(r.storage, r.worktree)
 		if err != nil {
 			return microerror.Mask(err)
@@ -325,7 +327,9 @@ func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 	opt := &git.CheckoutOptions{}
 	if ref != "" {
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
-		if err != nil {
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return nil, microerror.Maskf(referenceNotFoundError, "%#q", ref)
+		} else if err != nil {
 			return nil, microerror.Mask(err)
 		}
 		opt.Hash = *hash
