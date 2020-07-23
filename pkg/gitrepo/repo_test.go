@@ -94,6 +94,14 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 		}
 	}
 
+	// Ensure we get a repositoryNotFoundError when we don't have repo on the filesystem
+	err = repo.EnsureUpToDate(ctx)
+	if !IsRepositoryNotFound(err) {
+		t.Fatalf("err = %v, want %v", microerror.Stack(err), repositoryNotFoundError)
+	}
+
+	// Even if clone fails the first time, it's leaking the directory on the filesystem.
+	// Ensure we keep getting a repositoryNotFoundError once repo is on the filesystem.
 	err = repo.EnsureUpToDate(ctx)
 	if !IsRepositoryNotFound(err) {
 		t.Fatalf("err = %v, want %v", microerror.Stack(err), repositoryNotFoundError)

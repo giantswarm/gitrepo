@@ -102,13 +102,13 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	}
 
 	repo, err := git.Clone(r.storage, r.worktree, cloneOpts)
-	if errors.Is(err, transport.ErrRepositoryNotFound) {
-		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
-	} else if errors.Is(err, git.ErrRepositoryAlreadyExists) {
+	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
 		repo, err = git.Open(r.storage, r.worktree)
 		if err != nil {
 			return microerror.Mask(err)
 		}
+	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
+		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
@@ -121,6 +121,8 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	err = repo.Fetch(fetchOpts)
 	if errors.Is(err, git.NoErrAlreadyUpToDate) {
 		// Fall through.
+	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
+		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
