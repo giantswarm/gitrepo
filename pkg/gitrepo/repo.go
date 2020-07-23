@@ -107,6 +107,8 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 		if err != nil {
 			return microerror.Mask(err)
 		}
+	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
+		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
@@ -119,6 +121,12 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	err = repo.Fetch(fetchOpts)
 	if errors.Is(err, git.NoErrAlreadyUpToDate) {
 		// Fall through.
+	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
+		// This could happen if the repository does not exist, but you already have the folder on the filesystem.
+		// In that case Fetch will be the first to realise that repo does not exist since Clone only performs an Open.
+		// Also, Clone creates the folder on the filesystem even if it fails so you end simulate the same situation when
+		// you call EnsureUpToDate more that once on the same non-existent repo.
+		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
 	} else if err != nil {
 		return microerror.Mask(err)
 	}
@@ -325,7 +333,9 @@ func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 	opt := &git.CheckoutOptions{}
 	if ref != "" {
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
-		if err != nil {
+		if errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return nil, microerror.Maskf(referenceNotFoundError, "%#q", ref)
+		} else if err != nil {
 			return nil, microerror.Mask(err)
 		}
 		opt.Hash = *hash

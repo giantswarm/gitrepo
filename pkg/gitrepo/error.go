@@ -40,3 +40,12 @@ var referenceNotFoundError = &microerror.Error{
 func IsReferenceNotFound(err error) bool {
 	return microerror.Cause(err) == referenceNotFoundError
 }
+
+var repositoryNotFoundError = &microerror.Error{
+	Kind: "repositoryNotFoundError",
+}
+
+// IsRepositoryNotFound asserts referenceNotFoundError.
+func IsRepositoryNotFound(err error) bool {
+	return microerror.Cause(err) == repositoryNotFoundError
+}
