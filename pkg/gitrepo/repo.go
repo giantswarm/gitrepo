@@ -122,6 +122,10 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	if errors.Is(err, git.NoErrAlreadyUpToDate) {
 		// Fall through.
 	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
+		// This could happen if the repository does not exist, but you already have the folder on the filesystem.
+		// In that case Fetch will be the first to realise that repo does not exist since Clone only performs an Open.
+		// Also, Clone creates the folder on the filesystem even if it fails so you end simulate the same situation when
+		// you call EnsureUpToDate more that once on the same non-existent repo.
 		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
 	} else if err != nil {
 		return microerror.Mask(err)
