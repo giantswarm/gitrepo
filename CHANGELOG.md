@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2020-07-24
+
 ### Added
 
 - Introduce new `IsRepositoryNotFound` error matcher
@@ -29,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Functions signature for `EnsureUpToDate` and `ResolveVersion`.
 
-[Unreleased]: https://github.com/giantswarm/architect-orb/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/giantswarm/gitrepo/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/giantswarm/gitrepo/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/giantswarm/architect-orb/releases/tag/v0.1.1
 [0.1.0]: https://github.com/giantswarm/architect-orb/releases/tag/v0.1.0
