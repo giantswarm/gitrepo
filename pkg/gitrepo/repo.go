@@ -237,6 +237,10 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	var commit *object.Commit
 	{
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
+		if errors.Is(err, plumbing.ErrReferenceNotFound) && tagRegex.MatchString(ref) {
+			ref = strings.TrimPrefix(ref, "v")
+			hash, err = repo.ResolveRevision(plumbing.Revision(ref))
+		}
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
 			return "", microerror.Maskf(referenceNotFoundError, "%#q", ref)
 		} else if err != nil {
