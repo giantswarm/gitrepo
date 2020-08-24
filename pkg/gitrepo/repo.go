@@ -22,7 +22,7 @@ import (
 	"gopkg.in/src-d/go-git.v4/storage/filesystem"
 )
 
-var tagRegex = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+`)
+var tagRegex = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9a-zA-Z-]+)?`)
 
 type Config struct {
 	AuthBasicToken string
