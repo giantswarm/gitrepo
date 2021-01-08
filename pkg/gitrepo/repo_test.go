@@ -515,8 +515,8 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 		},
 		{
 			name:         "case 3: folder not found error",
-			path:         "non/existent/file/path",
-			errorMatcher: IsFileNotFound,
+			path:         "non/existent",
+			errorMatcher: IsFolderNotFound,
 		},
 		{
 			name:         "case 4: handle reference not found error",

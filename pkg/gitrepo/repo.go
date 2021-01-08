@@ -349,7 +349,7 @@ func (r *Repo) GetFolderContent(path, ref string) ([]os.FileInfo, error) {
 
 	files, err := worktree.Filesystem.ReadDir(path)
 	if os.IsNotExist(err) {
-		return nil, microerror.Maskf(fileNotFoundError, "%#q", path)
+		return nil, microerror.Maskf(folderNotFoundError, "%#q", path)
 	} else if err != nil {
 		return nil, microerror.Mask(err)
 	}

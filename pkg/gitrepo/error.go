@@ -32,6 +32,15 @@ func IsFileNotFound(err error) bool {
 	return microerror.Cause(err) == fileNotFoundError
 }
 
+var folderNotFoundError = &microerror.Error{
+	Kind: "folderNotFoundError",
+}
+
+// IsFolderNotFound asserts folderNotFoundError.
+func IsFolderNotFound(err error) bool {
+	return microerror.Cause(err) == folderNotFoundError
+}
+
 var referenceNotFoundError = &microerror.Error{
 	Kind: "referenceNotFoundError",
 }
