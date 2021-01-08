@@ -473,3 +473,110 @@ func Test_Repo_GetFileContent(t *testing.T) {
 		})
 	}
 }
+
+// Test_Repo_GetFolderContent tests Repo.GetFolderContent method which retrieves
+// the content of a folder.
+//
+// Tested repository can be found here:
+//
+//	https://github.com/giantswarm/gitrepo-test.
+//
+// It uses golden file as reference and when changes are intentional,
+// they can be updated by providing -update flag for go test.
+//
+//	go test . -run Test_Repo_GetFileContent -update
+//
+func Test_Repo_GetFolderContent(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		name         string
+		path         string
+		expected     string
+		ref          string
+		errorMatcher func(err error) bool
+	}{
+		{
+			name:     "case 0: get folder contents",
+			path:     ".",
+			expected: "DCO",
+		},
+		{
+			name:     "case 1: get folder contents on a branch",
+			path:     ".",
+			expected: "DCO",
+			ref:      "origin/branch-of-2.0.0",
+		},
+		{
+			name:     "case 2: get folder contents on a tag",
+			path:     ".",
+			expected: "DCO",
+			ref:      "v2.0.0",
+		},
+		{
+			name:         "case 3: folder not found error",
+			path:         "non/existent/file/path",
+			errorMatcher: IsFileNotFound,
+		},
+		{
+			name:         "case 4: handle reference not found error",
+			path:         "DCO",
+			ref:          "does-not-exist",
+			errorMatcher: IsReferenceNotFound,
+		},
+	}
+
+	dir := "/tmp/gitrepo-test-repo-getfoldercontent"
+	defer os.RemoveAll(dir)
+
+	c := Config{
+		Dir: dir,
+		URL: "git@github.com:giantswarm/gitrepo-test.git",
+	}
+	repo, err := New(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ctx := context.Background()
+
+	err = repo.EnsureUpToDate(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for i, tc := range testCases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			t.Log(tc.name)
+
+			files, err := repo.GetFolderContent(tc.path, tc.ref)
+
+			switch {
+			case err == nil && tc.errorMatcher == nil:
+				// correct; carry on
+			case err != nil && tc.errorMatcher == nil:
+				t.Fatalf("error == %#v, want nil", err)
+			case err == nil && tc.errorMatcher != nil:
+				t.Fatalf("error == nil, want non-nil")
+			case !tc.errorMatcher(err):
+				t.Fatalf("error == %#v, want matching", err)
+			}
+
+			if err == nil {
+				if !containsFile(files, tc.expected) {
+					t.Fatalf("folder %s does not contain %s", tc.path, tc.expected)
+				}
+			}
+		})
+	}
+}
+
+func containsFile(files []os.FileInfo, fileName string) bool {
+	for _, f := range files {
+		if f.Name() == fileName {
+			return true
+		}
+	}
+
+	return false
+}
