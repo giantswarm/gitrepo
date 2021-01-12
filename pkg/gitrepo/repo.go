@@ -377,8 +377,20 @@ func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		}
+
+		head, err := repo.Head()
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		if head.Hash() == *hash {
+			// We're already at the right ref, no need to checkout
+			return worktree, nil
+		}
+
 		opt.Hash = *hash
 	}
+
 	err = worktree.Checkout(opt)
 	if err != nil {
 		return nil, microerror.Mask(err)
