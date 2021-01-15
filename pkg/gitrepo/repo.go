@@ -319,6 +319,45 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 // GetFileContent retrieves content of file stored at path on version specified in ref.
 // When empty ref defaults to master branch.
 func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
+	worktree, err := r.checkoutRef(ref)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	file, err := worktree.Filesystem.Open(path)
+	if os.IsNotExist(err) {
+		return nil, microerror.Maskf(fileNotFoundError, "%#q", path)
+	} else if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	content, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return content, nil
+}
+
+// GetFolderContent retrieves content of a folder stored at path on version specified in ref.
+// When empty ref defaults to master branch.
+func (r *Repo) GetFolderContent(path, ref string) ([]os.FileInfo, error) {
+	worktree, err := r.checkoutRef(ref)
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	files, err := worktree.Filesystem.ReadDir(path)
+	if os.IsNotExist(err) {
+		return nil, microerror.Maskf(folderNotFoundError, "%#q", path)
+	} else if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
+	return files, nil
+}
+
+func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
 		return nil, microerror.Mask(err)
@@ -338,26 +377,26 @@ func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 		} else if err != nil {
 			return nil, microerror.Mask(err)
 		}
+
+		head, err := repo.Head()
+		if err != nil {
+			return nil, microerror.Mask(err)
+		}
+
+		if head.Hash() == *hash {
+			// We're already at the right ref, no need to checkout
+			return worktree, nil
+		}
+
 		opt.Hash = *hash
 	}
+
 	err = worktree.Checkout(opt)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
 
-	file, err := worktree.Filesystem.Open(path)
-	if os.IsNotExist(err) {
-		return nil, microerror.Maskf(fileNotFoundError, "%#q", path)
-	} else if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	content, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, microerror.Mask(err)
-	}
-
-	return content, nil
+	return worktree, nil
 }
 
 func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
