@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Reading files from default branch after calling `EnsureUpToDate` on empty repo
+
 ## [0.2.0] - 2021-01-15
 
 ### Added

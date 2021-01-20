@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -393,52 +394,57 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			expected: "DCO",
 		},
 		{
-			name:     "case 1: get DCO file content on branch-of-2.0.0 branch",
+			name:     "case 1: get DCO file content on default branch (master)",
+			path:     "DCO",
+			expected: "DCO",
+			ref:      "master",
+		},
+		{
+			name:     "case 2: get DCO file content on branch-of-2.0.0 branch",
 			path:     "DCO",
 			expected: "DCO",
 			ref:      "origin/branch-of-2.0.0",
 		},
 		{
-			name:     "case 2: get DCO file content on v2.0.0 tag",
+			name:     "case 3: get DCO file content on v2.0.0 tag",
 			path:     "DCO",
 			expected: "DCO",
 			ref:      "v2.0.0",
 		},
 		{
-			name:         "case 3: handle file not found error",
+			name:         "case 4: handle file not found error",
 			path:         "non/existent/file/path",
 			errorMatcher: IsFileNotFound,
 		},
 		{
-			name:         "case 4: handle reference not found error",
+			name:         "case 5: handle reference not found error",
 			path:         "DCO",
 			ref:          "does-not-exist",
 			errorMatcher: IsReferenceNotFound,
 		},
 	}
 
-	dir := "/tmp/gitrepo-test-repo-getfilecontent"
-	defer os.RemoveAll(dir)
-
-	c := Config{
-		Dir: dir,
-		URL: "git@github.com:giantswarm/gitrepo-test.git",
-	}
-	repo, err := New(c)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	ctx := context.Background()
-
-	err = repo.EnsureUpToDate(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	for i, tc := range testCases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			t.Log(tc.name)
+
+			dir := fmt.Sprintf("/tmp/gitrepo-test-repo-getfilecontent-%d", i)
+			defer os.RemoveAll(dir)
+
+			c := Config{
+				Dir: dir,
+				URL: "https://github.com/giantswarm/gitrepo-test",
+			}
+			repo, err := New(c)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			ctx := context.Background()
+			err = repo.EnsureUpToDate(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			content, err := repo.GetFileContent(tc.path, tc.ref)
 
