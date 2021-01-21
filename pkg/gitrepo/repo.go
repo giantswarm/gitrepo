@@ -101,6 +101,14 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 		NoCheckout: true,
 	}
 
+	_, err := r.worktree.Stat("/")
+	if os.IsNotExist(err) {
+		// Repo is empty so perform an initial checkout
+		cloneOpts.NoCheckout = false
+	} else if err != nil {
+		return microerror.Mask(err)
+	}
+
 	repo, err := git.Clone(r.storage, r.worktree, cloneOpts)
 	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
 		repo, err = git.Open(r.storage, r.worktree)
