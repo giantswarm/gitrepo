@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2021-01-21
+
 ### Fixed
 
 - Reading files from default branch after calling `EnsureUpToDate` on empty repo
@@ -41,7 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Functions signature for `EnsureUpToDate` and `ResolveVersion`.
 
-[Unreleased]: https://github.com/giantswarm/gitrepo/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/giantswarm/gitrepo/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/giantswarm/gitrepo/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/giantswarm/gitrepo/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/giantswarm/gitrepo/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/giantswarm/architect-orb/releases/tag/v0.1.1
