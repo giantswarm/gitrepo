@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Clean after checkout of repo to avoid leaking of folders/files.
+
 ## [0.2.1] - 2021-01-21
 
 ### Fixed

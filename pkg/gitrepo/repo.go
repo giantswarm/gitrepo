@@ -404,6 +404,11 @@ func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 		return nil, microerror.Mask(err)
 	}
 
+	err = worktree.Clean(&git.CleanOptions{Dir: true})
+	if err != nil {
+		return nil, microerror.Mask(err)
+	}
+
 	return worktree, nil
 }
 
