@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/giantswarm/microerror"
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/go-cmp/cmp"
-	"gopkg.in/src-d/go-git.v4"
-	"gopkg.in/src-d/go-git.v4/plumbing"
 )
 
 var update = flag.Bool("update", false, "update .golden files")
