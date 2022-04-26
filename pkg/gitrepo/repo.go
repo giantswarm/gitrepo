@@ -376,8 +376,10 @@ func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	// When empty CheckoutOptions defaults to master branch.
-	opt := &git.CheckoutOptions{}
+	// When git.CheckoutOptions.Branch is not specified it defaults to master
+	opt := &git.CheckoutOptions{
+		Force: true,
+	}
 	if ref != "" {
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
