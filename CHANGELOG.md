@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Upgrade go-git and go-billy dependencies to their new location.
+  Moving from github.com/src-d to github.com/go-git.
+  v4 to v5 is a drop-in replacement, see https://github.com/go-git/go-git/releases/tag/v5.0.0
+
 ## [0.2.2] - 2021-04-16
 
 ### Fixed
