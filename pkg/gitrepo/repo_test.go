@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -205,10 +204,7 @@ func Test_Repo_Head(t *testing.T) {
 
 // Test_Repo_ResolveVersion tests Repo.ResolveVersion method which resolve
 // a git reference and find the project version for it. Tested repository can
-// be found here:
-//
-//	https://github.com/giantswarm/gitrepo-test.
-//
+// be found at https://github.com/giantswarm/gitrepo-test.
 func Test_Repo_ResolveVersion(t *testing.T) {
 	t.Parallel()
 
@@ -374,10 +370,9 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 //	https://github.com/giantswarm/gitrepo-test.
 //
 // It uses golden file as reference and when changes are intentional,
-// they can be updated by providing -update flag for go test.
+// they can be updated by providing -update flag for go test:
 //
-//	go test . -run Test_Repo_GetFileContent -update
-//
+// go test . -run Test_Repo_GetFileContent -update
 func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
@@ -464,9 +459,9 @@ func Test_Repo_GetFileContent(t *testing.T) {
 				{
 					golden := filepath.Join("testdata", tc.expected)
 					if *update {
-						ioutil.WriteFile(golden, content, 0644)
+						os.WriteFile(golden, content, 0644)
 					}
-					expectedContent, err = ioutil.ReadFile(golden)
+					expectedContent, err = os.ReadFile(golden)
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -488,10 +483,9 @@ func Test_Repo_GetFileContent(t *testing.T) {
 //	https://github.com/giantswarm/gitrepo-test.
 //
 // It uses golden file as reference and when changes are intentional,
-// they can be updated by providing -update flag for go test.
+// they can be updated by providing -update flag for go test:
 //
-//	go test . -run Test_Repo_GetFileContent -update
-//
+// go test . -run Test_Repo_GetFileContent -update
 func Test_Repo_GetFolderContent(t *testing.T) {
 	t.Parallel()
 

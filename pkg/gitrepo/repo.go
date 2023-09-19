@@ -2,7 +2,7 @@ package gitrepo
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -339,7 +339,7 @@ func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 		return nil, microerror.Mask(err)
 	}
 
-	content, err := ioutil.ReadAll(file)
+	content, err := io.ReadAll(file)
 	if err != nil {
 		return nil, microerror.Mask(err)
 	}
