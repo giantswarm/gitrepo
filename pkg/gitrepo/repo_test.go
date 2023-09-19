@@ -180,6 +180,9 @@ func Test_Repo_Head(t *testing.T) {
 		// Create "test-tag" tag on HEAD.
 		{
 			gitRepo, err := git.Open(repo.storage, nil)
+			if err != nil {
+				t.Errorf("unexpected error in git.Open: %v", microerror.Stack(err))
+			}
 
 			head, err := gitRepo.Head()
 			if err != nil {
@@ -459,7 +462,10 @@ func Test_Repo_GetFileContent(t *testing.T) {
 				{
 					golden := filepath.Join("testdata", tc.expected)
 					if *update {
-						os.WriteFile(golden, content, 0644)
+						err := os.WriteFile(golden, content, 0644)
+						if err != nil {
+							t.Fatal(err)
+						}
 					}
 					expectedContent, err = os.ReadFile(golden)
 					if err != nil {
