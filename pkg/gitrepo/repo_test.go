@@ -46,7 +46,7 @@ func Test_New_optionalURL(t *testing.T) {
 
 		err = repo.EnsureUpToDate(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want = %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want = %v", microerror.JSON(err), nil)
 		}
 	}
 
@@ -97,14 +97,14 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 	// Ensure we get a repositoryNotFoundError when we don't have repo on the filesystem
 	err = repo.EnsureUpToDate(ctx)
 	if !IsRepositoryNotFound(err) {
-		t.Fatalf("err = %v, want %v", microerror.Stack(err), repositoryNotFoundError)
+		t.Fatalf("err = %v, want %v", microerror.JSON(err), repositoryNotFoundError)
 	}
 
 	// Even if clone fails the first time, it's leaking the directory on the filesystem.
 	// Ensure we keep getting a repositoryNotFoundError once repo is on the filesystem.
 	err = repo.EnsureUpToDate(ctx)
 	if !IsRepositoryNotFound(err) {
-		t.Fatalf("err = %v, want %v", microerror.Stack(err), repositoryNotFoundError)
+		t.Fatalf("err = %v, want %v", microerror.JSON(err), repositoryNotFoundError)
 	}
 }
 
@@ -142,7 +142,7 @@ func Test_Repo_Head(t *testing.T) {
 	{
 		headBranch, err := repo.HeadBranch(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(headBranch, "master") {
 			t.Fatalf("headBranch = %v, want %v", headBranch, "master")
@@ -155,7 +155,7 @@ func Test_Repo_Head(t *testing.T) {
 		{
 			ref, err := repo.storage.Reference(plumbing.Master)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 
 			expectedHeadSHA = ref.Hash().String()
@@ -163,7 +163,7 @@ func Test_Repo_Head(t *testing.T) {
 
 		headSHA, err := repo.HeadSHA(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(headSHA, expectedHeadSHA) {
 			t.Fatalf("headSHA = %v, want %v", headSHA, expectedHeadSHA)
@@ -181,23 +181,23 @@ func Test_Repo_Head(t *testing.T) {
 		{
 			gitRepo, err := git.Open(repo.storage, nil)
 			if err != nil {
-				t.Errorf("unexpected error in git.Open: %v", microerror.Stack(err))
+				t.Errorf("unexpected error in git.Open: %v", microerror.JSON(err))
 			}
 
 			head, err := gitRepo.Head()
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 
 			_, err = gitRepo.CreateTag("test-tag", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 		}
 
 		tag, err := repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(tag, "test-tag") {
 			t.Fatalf("tag = %v, want %v", tag, "test-tag")
@@ -331,7 +331,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				ref := plumbing.NewReferenceFromStrings(plumbing.HEAD.String(), tc.inputHeadTarget)
 				err := repo.storage.SetReference(ref)
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 				}
 			}
 

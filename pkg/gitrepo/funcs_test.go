@@ -37,7 +37,7 @@ func Test_TopLevel(t *testing.T) {
 
 			abs, err := filepath.Abs(".")
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
 
 			expectedDir := filepath.Clean(filepath.Join(abs, tc.expectedRelativeDir))
@@ -46,7 +46,7 @@ func Test_TopLevel(t *testing.T) {
 			{
 				dir, err := TopLevel(ctx, tc.inputPath)
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 				}
 
 				if dir != expectedDir {
@@ -58,7 +58,7 @@ func Test_TopLevel(t *testing.T) {
 			{
 				dir, err := TopLevel(ctx, filepath.Join(abs, tc.inputPath))
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.Stack(err), nil)
+					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 				}
 
 				if dir != expectedDir {
