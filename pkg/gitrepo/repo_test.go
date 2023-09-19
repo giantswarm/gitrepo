@@ -205,10 +205,7 @@ func Test_Repo_Head(t *testing.T) {
 
 // Test_Repo_ResolveVersion tests Repo.ResolveVersion method which resolve
 // a git reference and find the project version for it. Tested repository can
-// be found here:
-//
-//	https://github.com/giantswarm/gitrepo-test.
-//
+// be found at https://github.com/giantswarm/gitrepo-test.
 func Test_Repo_ResolveVersion(t *testing.T) {
 	t.Parallel()
 
@@ -377,7 +374,6 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 // they can be updated by providing -update flag for go test.
 //
 //	go test . -run Test_Repo_GetFileContent -update
-//
 func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
@@ -491,7 +487,6 @@ func Test_Repo_GetFileContent(t *testing.T) {
 // they can be updated by providing -update flag for go test.
 //
 //	go test . -run Test_Repo_GetFileContent -update
-//
 func Test_Repo_GetFolderContent(t *testing.T) {
 	t.Parallel()
 

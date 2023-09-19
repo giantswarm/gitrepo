@@ -11,8 +11,7 @@ import (
 // Toplevel finds absolute path of top-level git directory. The output
 // is the same as:
 //
-//	git rev-parse --show-toplevel
-//
+// `git rev-parse --show-toplevel`
 func TopLevel(ctx context.Context, path string) (string, error) {
 	p, err := filepath.Abs(path)
 	if err != nil {
