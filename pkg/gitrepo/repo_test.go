@@ -462,7 +462,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 				{
 					golden := filepath.Join("testdata", tc.expected)
 					if *update {
-						err := os.WriteFile(golden, content, 0644)
+						err := os.WriteFile(golden, content, 0644) // #nosec G306
 						if err != nil {
 							t.Fatal(err)
 						}
