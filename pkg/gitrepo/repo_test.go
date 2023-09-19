@@ -5,7 +5,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -460,9 +459,9 @@ func Test_Repo_GetFileContent(t *testing.T) {
 				{
 					golden := filepath.Join("testdata", tc.expected)
 					if *update {
-						ioutil.WriteFile(golden, content, 0644)
+						os.WriteFile(golden, content, 0644)
 					}
-					expectedContent, err = ioutil.ReadFile(golden)
+					expectedContent, err = os.ReadFile(golden)
 					if err != nil {
 						t.Fatal(err)
 					}
