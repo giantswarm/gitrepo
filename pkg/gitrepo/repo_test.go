@@ -370,9 +370,9 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 //	https://github.com/giantswarm/gitrepo-test.
 //
 // It uses golden file as reference and when changes are intentional,
-// they can be updated by providing -update flag for go test.
+// they can be updated by providing -update flag for go test:
 //
-//	go test . -run Test_Repo_GetFileContent -update
+// go test . -run Test_Repo_GetFileContent -update
 func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
@@ -483,9 +483,9 @@ func Test_Repo_GetFileContent(t *testing.T) {
 //	https://github.com/giantswarm/gitrepo-test.
 //
 // It uses golden file as reference and when changes are intentional,
-// they can be updated by providing -update flag for go test.
+// they can be updated by providing -update flag for go test:
 //
-//	go test . -run Test_Repo_GetFileContent -update
+// go test . -run Test_Repo_GetFileContent -update
 func Test_Repo_GetFolderContent(t *testing.T) {
 	t.Parallel()
 
