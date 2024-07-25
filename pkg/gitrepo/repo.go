@@ -24,6 +24,9 @@ import (
 
 var tagRegex = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+`)
 
+var tagPrefixEnvVarName = "GS_TAG_PREFIX"
+var prefixedTagRegex = regexp.MustCompile(`^[a-zA-Z0-9-_]+/v[0-9]+\.[0-9]+\.[0-9]+`)
+
 type Config struct {
 	AuthBasicToken string
 	Dir            string
@@ -219,6 +222,8 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 		return "", microerror.Mask(err)
 	}
 
+	tagPrefix := os.Getenv(tagPrefixEnvVarName)
+
 	versionsByHash := map[string]string{}
 	{
 
@@ -229,9 +234,17 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 		for hash, tags := range tagsByHash {
 			for _, t := range tags {
 				var versionTags []string
-				if tagRegex.MatchString(t) {
-					versionTags = append(versionTags, t)
-					versionsByHash[hash] = strings.TrimPrefix(t, "v")
+
+				if tagPrefix != "" {
+					if prefixedTagRegex.MatchString(t) && strings.HasPrefix(t, tagPrefix+"/") {
+						versionTags = append(versionTags, t)
+						versionsByHash[hash] = strings.TrimPrefix(t, "v")
+					}
+				} else {
+					if tagRegex.MatchString(t) {
+						versionTags = append(versionTags, t)
+						versionsByHash[hash] = strings.TrimPrefix(t, "v")
+					}
 				}
 
 				if len(versionTags) > 1 {

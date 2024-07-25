@@ -209,13 +209,13 @@ func Test_Repo_Head(t *testing.T) {
 // a git reference and find the project version for it. Tested repository can
 // be found at https://github.com/giantswarm/gitrepo-test.
 func Test_Repo_ResolveVersion(t *testing.T) {
-	t.Parallel()
-
 	const masterTarget = "ref: refs/heads/master"
+	const monorepoTarget = "ref: refs/heads/monorepo"
 
 	testCases := []struct {
 		name            string
 		inputHeadTarget string
+		environment     map[string]string
 		inputRef        string
 		expectedVersion string
 		errorMatcher    func(err error) bool
@@ -298,6 +298,42 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			inputRef:        "origin/complex-tree",
 			expectedVersion: "0.0.0-a42e026e60b4c191ffb29430f439ad4b3aced71b",
 		},
+		{
+			name:            "case 13: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-c",
+			},
+			inputRef:        "ab61bc963b844551ffaf080f84d217e483323210",
+			expectedVersion: "module-c/v2.0.0",
+		},
+		{
+			name:            "case 14: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-a",
+			},
+			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "module-a/v0.1.1",
+		},
+		{
+			name:            "case 15: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-c",
+			},
+			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "module-c/v1.1.0",
+		},
+		{
+			name:            "case 16: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-b",
+			},
+			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "module-b/v0.2.0-4707825fd7775c69fbd2f72a990e315b367b5409",
+		},
 	}
 
 	dir := "/tmp/gitrepo-test-repo-resolveversion"
@@ -337,6 +373,12 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 
 			doneCh := make(chan struct{})
 			go func() {
+				if tc.environment != nil {
+					for key, value := range tc.environment {
+						t.Setenv(key, value)
+					}
+				}
+
 				version, err = repo.ResolveVersion(ctx, tc.inputRef)
 				err = microerror.Mask(err)
 				close(doneCh)
