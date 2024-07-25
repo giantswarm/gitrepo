@@ -238,7 +238,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				if tagPrefix != "" {
 					if prefixedTagRegex.MatchString(t) && strings.HasPrefix(t, tagPrefix+"/") {
 						versionTags = append(versionTags, t)
-						versionsByHash[hash] = strings.TrimPrefix(t, "v")
+						versionsByHash[hash] = strings.TrimPrefix(strings.TrimPrefix(t, tagPrefix+"/"), "v")
 					}
 				} else {
 					if tagRegex.MatchString(t) {

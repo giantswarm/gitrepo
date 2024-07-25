@@ -305,7 +305,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				tagPrefixEnvVarName: "module-c",
 			},
 			inputRef:        "ab61bc963b844551ffaf080f84d217e483323210",
-			expectedVersion: "module-c/v2.0.0",
+			expectedVersion: "2.0.0",
 		},
 		{
 			name:            "case 14: ...",
@@ -314,7 +314,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				tagPrefixEnvVarName: "module-a",
 			},
 			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
-			expectedVersion: "module-a/v0.1.1",
+			expectedVersion: "0.1.1",
 		},
 		{
 			name:            "case 15: ...",
@@ -323,7 +323,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				tagPrefixEnvVarName: "module-c",
 			},
 			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
-			expectedVersion: "module-c/v1.1.0",
+			expectedVersion: "1.1.0",
 		},
 		{
 			name:            "case 16: ...",
@@ -332,7 +332,31 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				tagPrefixEnvVarName: "module-b",
 			},
 			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
-			expectedVersion: "module-b/v0.2.0-4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "0.2.0-4707825fd7775c69fbd2f72a990e315b367b5409",
+		},
+		{
+			name:            "case 17: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-not-exist",
+			},
+			inputRef:        "57aae3db71bcd176dd5a39eb8b487aae54930dcd",
+			expectedVersion: "0.0.0-57aae3db71bcd176dd5a39eb8b487aae54930dcd",
+		},
+		{
+			name:            "case 18: ...",
+			inputHeadTarget: monorepoTarget,
+			inputRef:        "ab61bc963b844551ffaf080f84d217e483323210",
+			expectedVersion: "2.0.0-ab61bc963b844551ffaf080f84d217e483323210",
+		},
+		{
+			name:            "case 19: ...",
+			inputHeadTarget: monorepoTarget,
+			inputRef:        "35d336b84623963eb4a9ea554b4ebf3f93a5d63d",
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-a",
+			},
+			expectedVersion: "0.0.0-35d336b84623963eb4a9ea554b4ebf3f93a5d63d",
 		},
 	}
 
