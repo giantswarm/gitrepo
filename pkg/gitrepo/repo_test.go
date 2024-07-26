@@ -110,8 +110,6 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 
 // Test_Repo_Head tests Repo.HeadBranch, Repo.HeadSHA and Repo.HeadTag methods.
 func Test_Repo_Head(t *testing.T) {
-	t.Parallel()
-
 	ctx := context.Background()
 	var err error
 
@@ -170,7 +168,7 @@ func Test_Repo_Head(t *testing.T) {
 		}
 	}
 
-	// Test HeadTag.
+	// Test HeadTag (with multiple tags for modules as well).
 	{
 		_, err := repo.HeadTag(ctx)
 		if !IsReferenceNotFound(err) {
@@ -193,14 +191,60 @@ func Test_Repo_Head(t *testing.T) {
 			if err != nil {
 				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 			}
+
+			_, err = gitRepo.CreateTag("module-a/v1.0.0", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			}
+
+			_, err = gitRepo.CreateTag("module-b/v2.1.0", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			}
+
+			_, err = gitRepo.CreateTag("module-c/v0.7.5", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			}
 		}
 
+		// Look for normal tag without prefix
 		tag, err := repo.HeadTag(ctx)
 		if err != nil {
 			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
 		}
 		if !reflect.DeepEqual(tag, "test-tag") {
 			t.Fatalf("tag = %v, want %v", tag, "test-tag")
+		}
+
+		// Look for module-a tag
+		t.Setenv(tagPrefixEnvVarName, "module-a")
+		tag, err = repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+		}
+		if !reflect.DeepEqual(tag, "module-a/v1.0.0") {
+			t.Fatalf("tag = %v, want %v", tag, "module-a/v1.0.0")
+		}
+
+		// Look for module-b tag
+		t.Setenv(tagPrefixEnvVarName, "module-b")
+		tag, err = repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+		}
+		if !reflect.DeepEqual(tag, "module-b/v2.1.0") {
+			t.Fatalf("tag = %v, want %v", tag, "module-b/v2.1.0")
+		}
+
+		// Look for module-c tag
+		t.Setenv(tagPrefixEnvVarName, "module-c")
+		tag, err = repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+		}
+		if !reflect.DeepEqual(tag, "module-c/v0.7.5") {
+			t.Fatalf("tag = %v, want %v", tag, "module-c/v0.7.5")
 		}
 	}
 }

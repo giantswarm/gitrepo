@@ -177,6 +177,12 @@ func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 
 // HeadTag returns tag for the HEAD ref.
 //
+// If GS_TAG_PREFIX environment variable is set, it looks for tags prefixed with that.
+// For example, when the value is 'module-a', it filters found tags to 'module-a/v1.2.0',
+// must match <module_name>/v<semantic_version>.
+//
+// Note: if GS_TAG_PREFIX is not set, all tags matching the prefixed tag regex are filtered out!
+//
 // It returns error handled by IsReferenceNotFound if the HEAD ref is not
 // tagged.
 func (r *Repo) HeadTag(ctx context.Context) (string, error) {
@@ -197,22 +203,44 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 
 	tags := tagsBySHA[head.Hash().String()]
 
-	if len(tags) == 0 {
-		return "", microerror.Maskf(referenceNotFoundError, "HEAD ref is not tagged")
-	}
-	if len(tags) > 1 {
-		return "", microerror.Maskf(executionFailedError, "HEAD ref has multiple tags %v", tags)
+	tagPrefix := os.Getenv(tagPrefixEnvVarName)
+
+	var filteredTags []string
+	if tagPrefix != "" {
+		for _, tag := range tags {
+			if strings.HasPrefix(tag, tagPrefix+"/") {
+				filteredTags = append(filteredTags, tag)
+			}
+		}
+	} else {
+		for _, tag := range tags {
+			if !prefixedTagRegex.MatchString(tag) {
+				filteredTags = append(filteredTags, tag)
+			}
+		}
 	}
 
-	return tags[0], nil
+	if len(filteredTags) == 0 {
+		return "", microerror.Maskf(referenceNotFoundError, "HEAD ref is not tagged (filtered for prefix: '%s')", tagPrefix)
+	}
+	if len(filteredTags) > 1 {
+		return "", microerror.Maskf(executionFailedError, "HEAD ref has multiple tags %v (filtered for prefix: '%s')", filteredTags, tagPrefix)
+	}
+
+	return filteredTags[0], nil
 }
 
 // ResolveVersion resolves version of a reference. It may be a version in
 // format "X.Y.Z" if the reference is tagged with tag in format "vX.Y.Z" (note
-// that the "v" prefix is trimmed). Otherwise it will be a pseudo-version in
+// that the "v" prefix is trimmed). Otherwise, it will be a pseudo-version in
 // format "X.Y.Z-SHA" where "X.Y.Z" part is the value taken from the most
 // recent parent commit tagged with "vX.Y.Z" or "0.0.0" if no such parent exist
 // and "SHA" part is the git SHA of the given reference.
+//
+// If GS_TAG_PREFIX environment variable is set, it looks for tag with prefixed with '<env_var_value>/'.
+// The second half of the tag must still be semantic versioned, e.g. 'module-a/v1.2.3'. The prefix, the separator
+// and the v prefix is removed from the returned result, similar to the default behaviour, e.g. for the example
+// it will return '1.2.3'. Git hash postfix for references after the last found tag works here just the same.q
 //
 // It returns error handled by IsReferenceNotFound if the HEAD ref is not
 // tagged.
