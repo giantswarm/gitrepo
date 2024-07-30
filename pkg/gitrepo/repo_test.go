@@ -5,13 +5,14 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/go-errors/errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/go-errors/errors"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
