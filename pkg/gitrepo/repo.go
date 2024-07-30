@@ -221,7 +221,7 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 	}
 
 	if len(filteredTags) == 0 {
-		return "", &referenceNotFoundError{message: fmt.Sprintf("HEAD ref is not tagged (filtered for prefix: '%s')", tagPrefix)}
+		return "", &ReferenceNotFoundError{message: fmt.Sprintf("HEAD ref is not tagged (filtered for prefix: '%s')", tagPrefix)}
 	}
 	if len(filteredTags) > 1 {
 		return "", &executionFailedError{message: fmt.Sprintf("HEAD ref has multiple tags %v (filtered for prefix: '%s')", filteredTags, tagPrefix)}
@@ -287,7 +287,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	{
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
-			return "", &referenceNotFoundError{message: fmt.Sprintf("%#q", ref)}
+			return "", &ReferenceNotFoundError{message: fmt.Sprintf("%#q", ref)}
 		} else if err != nil {
 			return "", err
 		}
@@ -422,7 +422,7 @@ func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 	if ref != "" {
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
-			return nil, &referenceNotFoundError{message: fmt.Sprintf("%#q", ref)}
+			return nil, &ReferenceNotFoundError{message: fmt.Sprintf("%#q", ref)}
 		} else if err != nil {
 			return nil, err
 		}

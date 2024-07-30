@@ -172,8 +172,8 @@ func Test_Repo_Head(t *testing.T) {
 	// Test HeadTag (with multiple tags for modules as well).
 	{
 		_, err := repo.HeadTag(ctx)
-		if !errors.Is(err, &referenceNotFoundError{}) {
-			t.Fatalf("err = %v, want %v", err, referenceNotFoundError{})
+		if !errors.Is(err, &ReferenceNotFoundError{}) {
+			t.Fatalf("err = %v, want %v", err, ReferenceNotFoundError{})
 		}
 
 		// Create "test-tag" tag on HEAD.
@@ -335,7 +335,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			name:            "case 11: unknown reference",
 			inputHeadTarget: masterTarget,
 			inputRef:        "branch-of-1.0.0",
-			expectedError:   &referenceNotFoundError{},
+			expectedError:   &ReferenceNotFoundError{},
 		},
 		{
 			name:            "case 12: resolving complex tree with multiple common parents and long history",
@@ -528,7 +528,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			name:          "case 5: handle reference not found error",
 			path:          "DCO",
 			ref:           "does-not-exist",
-			expectedError: &referenceNotFoundError{},
+			expectedError: &ReferenceNotFoundError{},
 		},
 	}
 
@@ -638,7 +638,7 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 			name:          "case 4: handle reference not found error",
 			path:          "DCO",
 			ref:           "does-not-exist",
-			expectedError: &referenceNotFoundError{},
+			expectedError: &ReferenceNotFoundError{},
 		},
 	}
 

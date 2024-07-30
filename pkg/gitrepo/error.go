@@ -52,15 +52,15 @@ func (e *folderNotFoundError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-type referenceNotFoundError struct {
+type ReferenceNotFoundError struct {
 	message string
 }
 
-func (e *referenceNotFoundError) Error() string {
-	return "referenceNotFoundError: " + e.message
+func (e *ReferenceNotFoundError) Error() string {
+	return "ReferenceNotFoundError: " + e.message
 }
 
-func (e *referenceNotFoundError) Is(target error) bool {
+func (e *ReferenceNotFoundError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
