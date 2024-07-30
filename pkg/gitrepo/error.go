@@ -1,59 +1,77 @@
 package gitrepo
 
-import "github.com/giantswarm/microerror"
+import (
+	"reflect"
+)
 
-// executionFailedError is an error type for situations where Resource execution
-// cannot continue and must always fall back to operatorkit.
-//
-// This error should never be matched against and therefore there is no matcher
-// implement. For further information see:
-//
-// https://github.com/giantswarm/fmt/blob/master/go/errors.md#matching-errors
-var executionFailedError = &microerror.Error{
-	Kind: "executionFailedError",
+type executionFailedError struct {
+	message string
 }
 
-var invalidConfigError = &microerror.Error{
-	Kind: "invalidConfigError",
+func (e *executionFailedError) Error() string {
+	return "executionFailedError: " + e.message
 }
 
-// IsInvalidConfig asserts invalidConfigError.
-func IsInvalidConfig(err error) bool {
-	return microerror.Cause(err) == invalidConfigError
+func (e *executionFailedError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-var fileNotFoundError = &microerror.Error{
-	Kind: "fileNotFoundError",
+type invalidConfigError struct {
+	message string
 }
 
-// IsFileNotFound asserts fileNotFoundError.
-func IsFileNotFound(err error) bool {
-	return microerror.Cause(err) == fileNotFoundError
+func (e *invalidConfigError) Error() string {
+	return "invalidConfigError: " + e.message
 }
 
-var folderNotFoundError = &microerror.Error{
-	Kind: "folderNotFoundError",
+func (e *invalidConfigError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-// IsFolderNotFound asserts folderNotFoundError.
-func IsFolderNotFound(err error) bool {
-	return microerror.Cause(err) == folderNotFoundError
+type fileNotFoundError struct {
+	message string
 }
 
-var referenceNotFoundError = &microerror.Error{
-	Kind: "referenceNotFoundError",
+func (e *fileNotFoundError) Error() string {
+	return "fileNotFoundError: " + e.message
 }
 
-// IsReferenceNotFound asserts referenceNotFoundError.
-func IsReferenceNotFound(err error) bool {
-	return microerror.Cause(err) == referenceNotFoundError
+func (e *fileNotFoundError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-var repositoryNotFoundError = &microerror.Error{
-	Kind: "repositoryNotFoundError",
+type folderNotFoundError struct {
+	message string
 }
 
-// IsRepositoryNotFound asserts referenceNotFoundError.
-func IsRepositoryNotFound(err error) bool {
-	return microerror.Cause(err) == repositoryNotFoundError
+func (e *folderNotFoundError) Error() string {
+	return "folderNotFoundError: " + e.message
+}
+
+func (e *folderNotFoundError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
+}
+
+type referenceNotFoundError struct {
+	message string
+}
+
+func (e *referenceNotFoundError) Error() string {
+	return "referenceNotFoundError: " + e.message
+}
+
+func (e *referenceNotFoundError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
+}
+
+type repositoryNotFoundError struct {
+	message string
+}
+
+func (e *repositoryNotFoundError) Error() string {
+	return "repositoryNotFoundError: " + e.message
+}
+
+func (e *repositoryNotFoundError) Is(target error) bool {
+	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

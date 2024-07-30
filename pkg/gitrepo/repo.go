@@ -2,6 +2,7 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -9,7 +10,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/giantswarm/microerror"
 	"github.com/go-errors/errors"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
@@ -43,7 +43,7 @@ type Repo struct {
 
 func New(config Config) (*Repo, error) {
 	if config.Dir == "" {
-		return nil, microerror.Maskf(invalidConfigError, "%T.Dir must not be empty", config)
+		return nil, &invalidConfigError{message: fmt.Sprintf("%T.Dir must not be empty", config)}
 	}
 
 	var auth transport.AuthMethod
@@ -65,14 +65,14 @@ func New(config Config) (*Repo, error) {
 	if config.URL == "" {
 		repo, err := git.Open(storage, worktree)
 		if err != nil {
-			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to open repository with error %#q", config, err)
+			return nil, &invalidConfigError{message: fmt.Sprintf("%T.URL not set and failed to open repository with error %#q", config, err)}
 		}
 
 		remoteName := "origin"
 
 		remote, err := repo.Remote(remoteName)
 		if err != nil {
-			return nil, microerror.Maskf(invalidConfigError, "%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)
+			return nil, &invalidConfigError{message: fmt.Sprintf("%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)}
 		}
 
 		// According to
@@ -109,19 +109,19 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 		// Repo is empty so perform an initial checkout
 		cloneOpts.NoCheckout = false
 	} else if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	repo, err := git.Clone(r.storage, r.worktree, cloneOpts)
 	if errors.Is(err, git.ErrRepositoryAlreadyExists) {
 		repo, err = git.Open(r.storage, r.worktree)
 		if err != nil {
-			return microerror.Mask(err)
+			return err
 		}
 	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
-		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
+		return &repositoryNotFoundError{message: fmt.Sprintf("%#q", r.url)}
 	} else if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	fetchOpts := &git.FetchOptions{
@@ -135,11 +135,11 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
 		// This could happen if the repository does not exist, but you already have the folder on the filesystem.
 		// In that case Fetch will be the first to realise that repo does not exist since Clone only performs an Open.
-		// Also, Clone creates the folder on the filesystem even if it fails so you end simulate the same situation when
+		// Also, Clone creates the folder on the filesystem even if it fails, so you end simulate the same situation when
 		// you call EnsureUpToDate more that once on the same non-existent repo.
-		return microerror.Maskf(repositoryNotFoundError, "%#q", r.url)
+		return &repositoryNotFoundError{message: fmt.Sprintf("%#q", r.url)}
 	} else if err != nil {
-		return microerror.Mask(err)
+		return err
 	}
 
 	return nil
@@ -149,12 +149,12 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	return head.Name().Short(), nil
@@ -164,12 +164,12 @@ func (r *Repo) HeadBranch(ctx context.Context) (string, error) {
 func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	return head.Hash().String(), nil
@@ -188,17 +188,17 @@ func (r *Repo) HeadSHA(ctx context.Context) (string, error) {
 func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	head, err := repo.Head()
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	tagsBySHA, err := r.tags(repo)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	tags := tagsBySHA[head.Hash().String()]
@@ -221,10 +221,10 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 	}
 
 	if len(filteredTags) == 0 {
-		return "", microerror.Maskf(referenceNotFoundError, "HEAD ref is not tagged (filtered for prefix: '%s')", tagPrefix)
+		return "", &referenceNotFoundError{message: fmt.Sprintf("HEAD ref is not tagged (filtered for prefix: '%s')", tagPrefix)}
 	}
 	if len(filteredTags) > 1 {
-		return "", microerror.Maskf(executionFailedError, "HEAD ref has multiple tags %v (filtered for prefix: '%s')", filteredTags, tagPrefix)
+		return "", &executionFailedError{message: fmt.Sprintf("HEAD ref has multiple tags %v (filtered for prefix: '%s')", filteredTags, tagPrefix)}
 	}
 
 	return filteredTags[0], nil
@@ -247,7 +247,7 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	tagPrefix := os.Getenv(tagPrefixEnvVarName)
@@ -257,7 +257,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 
 		tagsByHash, err := r.tags(repo)
 		if err != nil {
-			return "", microerror.Mask(err)
+			return "", err
 		}
 		for hash, tags := range tagsByHash {
 			for _, t := range tags {
@@ -276,7 +276,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				}
 
 				if len(versionTags) > 1 {
-					return "", microerror.Maskf(executionFailedError, "multiple version tags %#v found for hash %#q", versionTags, hash)
+					return "", &executionFailedError{message: fmt.Sprintf("multiple version tags %#v found for hash %#q", versionTags, hash)}
 				}
 			}
 		}
@@ -287,14 +287,14 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 	{
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
-			return "", microerror.Maskf(referenceNotFoundError, "%#q", ref)
+			return "", &referenceNotFoundError{message: fmt.Sprintf("%#q", ref)}
 		} else if err != nil {
-			return "", microerror.Mask(err)
+			return "", err
 		}
 
 		commit, err = repo.CommitObject(*hash)
 		if err != nil {
-			return "", microerror.Mask(err)
+			return "", err
 		}
 	}
 
@@ -351,7 +351,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				return nil
 			})
 			if err != nil {
-				return "", microerror.Mask(err)
+				return "", err
 			}
 
 			// Sort commits in the queue by commit date in
@@ -370,19 +370,19 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 	worktree, err := r.checkoutRef(ref)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	file, err := worktree.Filesystem.Open(path)
 	if os.IsNotExist(err) {
-		return nil, microerror.Maskf(fileNotFoundError, "%#q", path)
+		return nil, &fileNotFoundError{message: fmt.Sprintf("%#q", path)}
 	} else if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	content, err := io.ReadAll(file)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return content, nil
@@ -393,14 +393,14 @@ func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 func (r *Repo) GetFolderContent(path, ref string) ([]os.FileInfo, error) {
 	worktree, err := r.checkoutRef(ref)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	files, err := worktree.Filesystem.ReadDir(path)
 	if os.IsNotExist(err) {
-		return nil, microerror.Maskf(folderNotFoundError, "%#q", path)
+		return nil, &folderNotFoundError{message: fmt.Sprintf("%#q", path)}
 	} else if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return files, nil
@@ -409,12 +409,12 @@ func (r *Repo) GetFolderContent(path, ref string) ([]os.FileInfo, error) {
 func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 	repo, err := git.Open(r.storage, r.worktree)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	worktree, err := repo.Worktree()
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	// When empty CheckoutOptions defaults to master branch.
@@ -422,14 +422,14 @@ func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 	if ref != "" {
 		hash, err := repo.ResolveRevision(plumbing.Revision(ref))
 		if errors.Is(err, plumbing.ErrReferenceNotFound) {
-			return nil, microerror.Maskf(referenceNotFoundError, "%#q", ref)
+			return nil, &referenceNotFoundError{message: fmt.Sprintf("%#q", ref)}
 		} else if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		head, err := repo.Head()
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 
 		if head.Hash() == *hash {
@@ -442,12 +442,12 @@ func (r *Repo) checkoutRef(ref string) (*git.Worktree, error) {
 
 	err = worktree.Checkout(opt)
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	err = worktree.Clean(&git.CleanOptions{Dir: true})
 	if err != nil {
-		return nil, microerror.Mask(err)
+		return nil, err
 	}
 
 	return worktree, nil
@@ -460,7 +460,7 @@ func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
 	{
 		tagsIter, err := repo.Tags()
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 		defer tagsIter.Close()
 
@@ -476,7 +476,7 @@ func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
 			return nil
 		})
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 	}
 
@@ -484,14 +484,14 @@ func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
 	{
 		tagObjectsIter, err := repo.TagObjects()
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 		defer tagObjectsIter.Close()
 
 		err = tagObjectsIter.ForEach(func(tag *object.Tag) error {
 			commit, err := tag.Commit()
 			if err != nil {
-				return microerror.Mask(err)
+				return err
 			}
 
 			v := tags[commit.Hash.String()]
@@ -505,7 +505,7 @@ func (r *Repo) tags(repo *git.Repository) (map[string][]string, error) {
 			return nil
 		})
 		if err != nil {
-			return nil, microerror.Mask(err)
+			return nil, err
 		}
 	}
 

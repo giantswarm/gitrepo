@@ -5,6 +5,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/go-errors/errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -12,7 +13,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/microerror"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/go-cmp/cmp"
@@ -46,7 +46,7 @@ func Test_New_optionalURL(t *testing.T) {
 
 		err = repo.EnsureUpToDate(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want = %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want = %v", err, nil)
 		}
 	}
 
@@ -96,15 +96,15 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 
 	// Ensure we get a repositoryNotFoundError when we don't have repo on the filesystem
 	err = repo.EnsureUpToDate(ctx)
-	if !IsRepositoryNotFound(err) {
-		t.Fatalf("err = %v, want %v", microerror.JSON(err), repositoryNotFoundError)
+	if !errors.Is(err, &repositoryNotFoundError{}) {
+		t.Fatalf("err = %v, want %v", err, repositoryNotFoundError{})
 	}
 
 	// Even if clone fails the first time, it's leaking the directory on the filesystem.
 	// Ensure we keep getting a repositoryNotFoundError once repo is on the filesystem.
 	err = repo.EnsureUpToDate(ctx)
-	if !IsRepositoryNotFound(err) {
-		t.Fatalf("err = %v, want %v", microerror.JSON(err), repositoryNotFoundError)
+	if !errors.Is(err, &repositoryNotFoundError{}) {
+		t.Fatalf("err = %v, want %v", err, repositoryNotFoundError{})
 	}
 }
 
@@ -140,7 +140,7 @@ func Test_Repo_Head(t *testing.T) {
 	{
 		headBranch, err := repo.HeadBranch(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(headBranch, "master") {
 			t.Fatalf("headBranch = %v, want %v", headBranch, "master")
@@ -153,7 +153,7 @@ func Test_Repo_Head(t *testing.T) {
 		{
 			ref, err := repo.storage.Reference(plumbing.Master)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			expectedHeadSHA = ref.Hash().String()
@@ -161,7 +161,7 @@ func Test_Repo_Head(t *testing.T) {
 
 		headSHA, err := repo.HeadSHA(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(headSHA, expectedHeadSHA) {
 			t.Fatalf("headSHA = %v, want %v", headSHA, expectedHeadSHA)
@@ -171,47 +171,47 @@ func Test_Repo_Head(t *testing.T) {
 	// Test HeadTag (with multiple tags for modules as well).
 	{
 		_, err := repo.HeadTag(ctx)
-		if !IsReferenceNotFound(err) {
-			t.Fatalf("err = %v, want %v", err, referenceNotFoundError)
+		if !errors.Is(err, &referenceNotFoundError{}) {
+			t.Fatalf("err = %v, want %v", err, referenceNotFoundError{})
 		}
 
 		// Create "test-tag" tag on HEAD.
 		{
 			gitRepo, err := git.Open(repo.storage, nil)
 			if err != nil {
-				t.Errorf("unexpected error in git.Open: %v", microerror.JSON(err))
+				t.Errorf("unexpected error in git.Open: %v", err)
 			}
 
 			head, err := gitRepo.Head()
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			_, err = gitRepo.CreateTag("test-tag", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			_, err = gitRepo.CreateTag("module-a/v1.0.0", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			_, err = gitRepo.CreateTag("module-b/v2.1.0", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			_, err = gitRepo.CreateTag("module-c/v0.7.5", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 		}
 
 		// Look for normal tag without prefix
 		tag, err := repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(tag, "test-tag") {
 			t.Fatalf("tag = %v, want %v", tag, "test-tag")
@@ -221,7 +221,7 @@ func Test_Repo_Head(t *testing.T) {
 		t.Setenv(tagPrefixEnvVarName, "module-a")
 		tag, err = repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(tag, "module-a/v1.0.0") {
 			t.Fatalf("tag = %v, want %v", tag, "module-a/v1.0.0")
@@ -231,7 +231,7 @@ func Test_Repo_Head(t *testing.T) {
 		t.Setenv(tagPrefixEnvVarName, "module-b")
 		tag, err = repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(tag, "module-b/v2.1.0") {
 			t.Fatalf("tag = %v, want %v", tag, "module-b/v2.1.0")
@@ -241,7 +241,7 @@ func Test_Repo_Head(t *testing.T) {
 		t.Setenv(tagPrefixEnvVarName, "module-c")
 		tag, err = repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(tag, "module-c/v0.7.5") {
 			t.Fatalf("tag = %v, want %v", tag, "module-c/v0.7.5")
@@ -262,7 +262,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 		environment     map[string]string
 		inputRef        string
 		expectedVersion string
-		errorMatcher    func(err error) bool
+		expectedError   error
 	}{
 		{
 			name:            "case 0: version tag",
@@ -334,7 +334,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			name:            "case 11: unknown reference",
 			inputHeadTarget: masterTarget,
 			inputRef:        "branch-of-1.0.0",
-			errorMatcher:    IsReferenceNotFound,
+			expectedError:   &referenceNotFoundError{},
 		},
 		{
 			name:            "case 12: resolving complex tree with multiple common parents and long history",
@@ -435,7 +435,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				ref := plumbing.NewReferenceFromStrings(plumbing.HEAD.String(), tc.inputHeadTarget)
 				err := repo.storage.SetReference(ref)
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+					t.Fatalf("err = %v, want %v", err, nil)
 				}
 			}
 
@@ -448,7 +448,6 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				}
 
 				version, err = repo.ResolveVersion(ctx, tc.inputRef)
-				err = microerror.Mask(err)
 				close(doneCh)
 			}()
 
@@ -457,13 +456,13 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				t.Fatalf("timeout after %v", 15*time.Second)
 			case <-doneCh:
 				switch {
-				case err == nil && tc.errorMatcher == nil:
+				case err == nil && tc.expectedError == nil:
 					// correct; carry on
-				case err != nil && tc.errorMatcher == nil:
+				case err != nil && tc.expectedError == nil:
 					t.Fatalf("error == %#v, want nil", err)
-				case err == nil && tc.errorMatcher != nil:
+				case err == nil && tc.expectedError != nil:
 					t.Fatalf("error == nil, want non-nil")
-				case !tc.errorMatcher(err):
+				case reflect.TypeOf(tc.expectedError) != reflect.TypeOf(err):
 					t.Fatalf("error == %#v, want matching", err)
 				}
 
@@ -490,11 +489,11 @@ func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name         string
-		path         string
-		expected     string
-		ref          string
-		errorMatcher func(err error) bool
+		name          string
+		path          string
+		expected      string
+		ref           string
+		expectedError error
 	}{
 		{
 			name:     "case 0: get DCO file content",
@@ -520,15 +519,15 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			ref:      "v2.0.0",
 		},
 		{
-			name:         "case 4: handle file not found error",
-			path:         "non/existent/file/path",
-			errorMatcher: IsFileNotFound,
+			name:          "case 4: handle file not found error",
+			path:          "non/existent/file/path",
+			expectedError: &fileNotFoundError{},
 		},
 		{
-			name:         "case 5: handle reference not found error",
-			path:         "DCO",
-			ref:          "does-not-exist",
-			errorMatcher: IsReferenceNotFound,
+			name:          "case 5: handle reference not found error",
+			path:          "DCO",
+			ref:           "does-not-exist",
+			expectedError: &referenceNotFoundError{},
 		},
 	}
 
@@ -557,13 +556,13 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			content, err := repo.GetFileContent(tc.path, tc.ref)
 
 			switch {
-			case err == nil && tc.errorMatcher == nil:
+			case err == nil && tc.expectedError == nil:
 				// correct; carry on
-			case err != nil && tc.errorMatcher == nil:
+			case err != nil && tc.expectedError == nil:
 				t.Fatalf("error == %#v, want nil", err)
-			case err == nil && tc.errorMatcher != nil:
+			case err == nil && tc.expectedError != nil:
 				t.Fatalf("error == nil, want non-nil")
-			case !tc.errorMatcher(err):
+			case reflect.TypeOf(tc.expectedError) != reflect.TypeOf(err):
 				t.Fatalf("error == %#v, want matching", err)
 			}
 
@@ -606,11 +605,11 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name         string
-		path         string
-		expected     string
-		ref          string
-		errorMatcher func(err error) bool
+		name          string
+		path          string
+		expected      string
+		ref           string
+		expectedError error
 	}{
 		{
 			name:     "case 0: get folder contents",
@@ -630,15 +629,15 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 			ref:      "v2.0.0",
 		},
 		{
-			name:         "case 3: folder not found error",
-			path:         "non/existent",
-			errorMatcher: IsFolderNotFound,
+			name:          "case 3: folder not found error",
+			path:          "non/existent",
+			expectedError: &folderNotFoundError{},
 		},
 		{
-			name:         "case 4: handle reference not found error",
-			path:         "DCO",
-			ref:          "does-not-exist",
-			errorMatcher: IsReferenceNotFound,
+			name:          "case 4: handle reference not found error",
+			path:          "DCO",
+			ref:           "does-not-exist",
+			expectedError: &referenceNotFoundError{},
 		},
 	}
 
@@ -668,13 +667,13 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 			files, err := repo.GetFolderContent(tc.path, tc.ref)
 
 			switch {
-			case err == nil && tc.errorMatcher == nil:
+			case err == nil && tc.expectedError == nil:
 				// correct; carry on
-			case err != nil && tc.errorMatcher == nil:
+			case err != nil && tc.expectedError == nil:
 				t.Fatalf("error == %#v, want nil", err)
-			case err == nil && tc.errorMatcher != nil:
+			case err == nil && tc.expectedError != nil:
 				t.Fatalf("error == nil, want non-nil")
-			case !tc.errorMatcher(err):
+			case reflect.TypeOf(tc.expectedError) != reflect.TypeOf(err):
 				t.Fatalf("error == %#v, want matching", err)
 			}
 
