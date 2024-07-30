@@ -24,7 +24,7 @@ import (
 
 var tagRegex = regexp.MustCompile(`^v[0-9]+\.[0-9]+\.[0-9]+`)
 
-var tagPrefixEnvVarName = "GS_TAG_PREFIX"
+var tagPrefixEnvVarName = "GS_GIT_TAG_PREFIX"
 var prefixedTagRegex = regexp.MustCompile(`^[a-zA-Z0-9-_]+/v[0-9]+\.[0-9]+\.[0-9]+`)
 
 type Config struct {
