@@ -2,25 +2,24 @@ package gitrepo
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/giantswarm/microerror"
 )
 
-// Toplevel finds absolute path of top-level git directory. The output
+// TopLevel Toplevel finds absolute path of top-level git directory. The output
 // is the same as:
 //
 // `git rev-parse --show-toplevel`
 func TopLevel(ctx context.Context, path string) (string, error) {
 	p, err := filepath.Abs(path)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 
 	f, err := os.Stat(p)
 	if err != nil {
-		return "", microerror.Mask(err)
+		return "", err
 	}
 	if !f.IsDir() {
 		p = filepath.Dir(p)
@@ -31,7 +30,7 @@ func TopLevel(ctx context.Context, path string) (string, error) {
 		if os.IsNotExist(err) {
 			// Fall trough.
 		} else if err != nil {
-			return "", microerror.Mask(err)
+			return "", err
 		} else if f.IsDir() {
 			return p, nil
 		}
@@ -44,5 +43,5 @@ func TopLevel(ctx context.Context, path string) (string, error) {
 		p = d
 	}
 
-	return "", microerror.Maskf(executionFailedError, "path %#q is not inside git repository", path)
+	return "", &executionFailedError{message: fmt.Sprintf("path %#q is not inside git repository", path)}
 }

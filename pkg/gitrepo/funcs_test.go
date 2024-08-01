@@ -5,8 +5,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
-
-	"github.com/giantswarm/microerror"
 )
 
 func Test_TopLevel(t *testing.T) {
@@ -37,7 +35,7 @@ func Test_TopLevel(t *testing.T) {
 
 			abs, err := filepath.Abs(".")
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			expectedDir := filepath.Clean(filepath.Join(abs, tc.expectedRelativeDir))
@@ -46,7 +44,7 @@ func Test_TopLevel(t *testing.T) {
 			{
 				dir, err := TopLevel(ctx, tc.inputPath)
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+					t.Fatalf("err = %v, want %v", err, nil)
 				}
 
 				if dir != expectedDir {
@@ -58,7 +56,7 @@ func Test_TopLevel(t *testing.T) {
 			{
 				dir, err := TopLevel(ctx, filepath.Join(abs, tc.inputPath))
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+					t.Fatalf("err = %v, want %v", err, nil)
 				}
 
 				if dir != expectedDir {

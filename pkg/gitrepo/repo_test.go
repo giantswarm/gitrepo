@@ -12,7 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/giantswarm/microerror"
+	"github.com/go-errors/errors"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/google/go-cmp/cmp"
@@ -46,7 +47,7 @@ func Test_New_optionalURL(t *testing.T) {
 
 		err = repo.EnsureUpToDate(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want = %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want = %v", err, nil)
 		}
 	}
 
@@ -96,22 +97,20 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 
 	// Ensure we get a repositoryNotFoundError when we don't have repo on the filesystem
 	err = repo.EnsureUpToDate(ctx)
-	if !IsRepositoryNotFound(err) {
-		t.Fatalf("err = %v, want %v", microerror.JSON(err), repositoryNotFoundError)
+	if !errors.Is(err, &repositoryNotFoundError{}) {
+		t.Fatalf("err = %v, want %v", err, repositoryNotFoundError{})
 	}
 
 	// Even if clone fails the first time, it's leaking the directory on the filesystem.
 	// Ensure we keep getting a repositoryNotFoundError once repo is on the filesystem.
 	err = repo.EnsureUpToDate(ctx)
-	if !IsRepositoryNotFound(err) {
-		t.Fatalf("err = %v, want %v", microerror.JSON(err), repositoryNotFoundError)
+	if !errors.Is(err, &repositoryNotFoundError{}) {
+		t.Fatalf("err = %v, want %v", err, repositoryNotFoundError{})
 	}
 }
 
 // Test_Repo_Head tests Repo.HeadBranch, Repo.HeadSHA and Repo.HeadTag methods.
 func Test_Repo_Head(t *testing.T) {
-	t.Parallel()
-
 	ctx := context.Background()
 	var err error
 
@@ -142,7 +141,7 @@ func Test_Repo_Head(t *testing.T) {
 	{
 		headBranch, err := repo.HeadBranch(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(headBranch, "master") {
 			t.Fatalf("headBranch = %v, want %v", headBranch, "master")
@@ -155,7 +154,7 @@ func Test_Repo_Head(t *testing.T) {
 		{
 			ref, err := repo.storage.Reference(plumbing.Master)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			expectedHeadSHA = ref.Hash().String()
@@ -163,44 +162,90 @@ func Test_Repo_Head(t *testing.T) {
 
 		headSHA, err := repo.HeadSHA(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(headSHA, expectedHeadSHA) {
 			t.Fatalf("headSHA = %v, want %v", headSHA, expectedHeadSHA)
 		}
 	}
 
-	// Test HeadTag.
+	// Test HeadTag (with multiple tags for modules as well).
 	{
 		_, err := repo.HeadTag(ctx)
-		if !IsReferenceNotFound(err) {
-			t.Fatalf("err = %v, want %v", err, referenceNotFoundError)
+		if !errors.Is(err, &ReferenceNotFoundError{}) {
+			t.Fatalf("err = %v, want %v", err, ReferenceNotFoundError{})
 		}
 
 		// Create "test-tag" tag on HEAD.
 		{
 			gitRepo, err := git.Open(repo.storage, nil)
 			if err != nil {
-				t.Errorf("unexpected error in git.Open: %v", microerror.JSON(err))
+				t.Errorf("unexpected error in git.Open: %v", err)
 			}
 
 			head, err := gitRepo.Head()
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 
 			_, err = gitRepo.CreateTag("test-tag", head.Hash(), nil)
 			if err != nil {
-				t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+				t.Fatalf("err = %v, want %v", err, nil)
+			}
+
+			_, err = gitRepo.CreateTag("module-a/v1.0.0", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", err, nil)
+			}
+
+			_, err = gitRepo.CreateTag("module-b/v2.1.0", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", err, nil)
+			}
+
+			_, err = gitRepo.CreateTag("module-c/v0.7.5", head.Hash(), nil)
+			if err != nil {
+				t.Fatalf("err = %v, want %v", err, nil)
 			}
 		}
 
+		// Look for normal tag without prefix
 		tag, err := repo.HeadTag(ctx)
 		if err != nil {
-			t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+			t.Fatalf("err = %v, want %v", err, nil)
 		}
 		if !reflect.DeepEqual(tag, "test-tag") {
 			t.Fatalf("tag = %v, want %v", tag, "test-tag")
+		}
+
+		// Look for module-a tag
+		t.Setenv(tagPrefixEnvVarName, "module-a")
+		tag, err = repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", err, nil)
+		}
+		if !reflect.DeepEqual(tag, "module-a/v1.0.0") {
+			t.Fatalf("tag = %v, want %v", tag, "module-a/v1.0.0")
+		}
+
+		// Look for module-b tag
+		t.Setenv(tagPrefixEnvVarName, "module-b")
+		tag, err = repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", err, nil)
+		}
+		if !reflect.DeepEqual(tag, "module-b/v2.1.0") {
+			t.Fatalf("tag = %v, want %v", tag, "module-b/v2.1.0")
+		}
+
+		// Look for module-c tag
+		t.Setenv(tagPrefixEnvVarName, "module-c")
+		tag, err = repo.HeadTag(ctx)
+		if err != nil {
+			t.Fatalf("err = %v, want %v", err, nil)
+		}
+		if !reflect.DeepEqual(tag, "module-c/v0.7.5") {
+			t.Fatalf("tag = %v, want %v", tag, "module-c/v0.7.5")
 		}
 	}
 }
@@ -209,16 +254,16 @@ func Test_Repo_Head(t *testing.T) {
 // a git reference and find the project version for it. Tested repository can
 // be found at https://github.com/giantswarm/gitrepo-test.
 func Test_Repo_ResolveVersion(t *testing.T) {
-	t.Parallel()
-
 	const masterTarget = "ref: refs/heads/master"
+	const monorepoTarget = "ref: refs/heads/monorepo"
 
 	testCases := []struct {
 		name            string
 		inputHeadTarget string
+		environment     map[string]string
 		inputRef        string
 		expectedVersion string
-		errorMatcher    func(err error) bool
+		expectedError   error
 	}{
 		{
 			name:            "case 0: version tag",
@@ -290,13 +335,73 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			name:            "case 11: unknown reference",
 			inputHeadTarget: masterTarget,
 			inputRef:        "branch-of-1.0.0",
-			errorMatcher:    IsReferenceNotFound,
+			expectedError:   &ReferenceNotFoundError{},
 		},
 		{
 			name:            "case 12: resolving complex tree with multiple common parents and long history",
 			inputHeadTarget: masterTarget,
 			inputRef:        "origin/complex-tree",
 			expectedVersion: "0.0.0-a42e026e60b4c191ffb29430f439ad4b3aced71b",
+		},
+		{
+			name:            "case 13: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-c",
+			},
+			inputRef:        "ab61bc963b844551ffaf080f84d217e483323210",
+			expectedVersion: "2.0.0",
+		},
+		{
+			name:            "case 14: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-a",
+			},
+			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "0.1.1",
+		},
+		{
+			name:            "case 15: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-c",
+			},
+			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "1.1.0",
+		},
+		{
+			name:            "case 16: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-b",
+			},
+			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
+			expectedVersion: "0.2.0-4707825fd7775c69fbd2f72a990e315b367b5409",
+		},
+		{
+			name:            "case 17: ...",
+			inputHeadTarget: monorepoTarget,
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-not-exist",
+			},
+			inputRef:        "57aae3db71bcd176dd5a39eb8b487aae54930dcd",
+			expectedVersion: "0.0.0-57aae3db71bcd176dd5a39eb8b487aae54930dcd",
+		},
+		{
+			name:            "case 18: ...",
+			inputHeadTarget: monorepoTarget,
+			inputRef:        "ab61bc963b844551ffaf080f84d217e483323210",
+			expectedVersion: "2.0.0-ab61bc963b844551ffaf080f84d217e483323210",
+		},
+		{
+			name:            "case 19: ...",
+			inputHeadTarget: monorepoTarget,
+			inputRef:        "35d336b84623963eb4a9ea554b4ebf3f93a5d63d",
+			environment: map[string]string{
+				tagPrefixEnvVarName: "module-a",
+			},
+			expectedVersion: "0.0.0-35d336b84623963eb4a9ea554b4ebf3f93a5d63d",
 		},
 	}
 
@@ -331,14 +436,19 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				ref := plumbing.NewReferenceFromStrings(plumbing.HEAD.String(), tc.inputHeadTarget)
 				err := repo.storage.SetReference(ref)
 				if err != nil {
-					t.Fatalf("err = %v, want %v", microerror.JSON(err), nil)
+					t.Fatalf("err = %v, want %v", err, nil)
 				}
 			}
 
 			doneCh := make(chan struct{})
 			go func() {
+				if tc.environment != nil {
+					for key, value := range tc.environment {
+						t.Setenv(key, value)
+					}
+				}
+
 				version, err = repo.ResolveVersion(ctx, tc.inputRef)
-				err = microerror.Mask(err)
 				close(doneCh)
 			}()
 
@@ -347,13 +457,13 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				t.Fatalf("timeout after %v", 15*time.Second)
 			case <-doneCh:
 				switch {
-				case err == nil && tc.errorMatcher == nil:
+				case err == nil && tc.expectedError == nil:
 					// correct; carry on
-				case err != nil && tc.errorMatcher == nil:
+				case err != nil && tc.expectedError == nil:
 					t.Fatalf("error == %#v, want nil", err)
-				case err == nil && tc.errorMatcher != nil:
+				case err == nil && tc.expectedError != nil:
 					t.Fatalf("error == nil, want non-nil")
-				case !tc.errorMatcher(err):
+				case reflect.TypeOf(tc.expectedError) != reflect.TypeOf(err):
 					t.Fatalf("error == %#v, want matching", err)
 				}
 
@@ -380,11 +490,11 @@ func Test_Repo_GetFileContent(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name         string
-		path         string
-		expected     string
-		ref          string
-		errorMatcher func(err error) bool
+		name          string
+		path          string
+		expected      string
+		ref           string
+		expectedError error
 	}{
 		{
 			name:     "case 0: get DCO file content",
@@ -410,15 +520,15 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			ref:      "v2.0.0",
 		},
 		{
-			name:         "case 4: handle file not found error",
-			path:         "non/existent/file/path",
-			errorMatcher: IsFileNotFound,
+			name:          "case 4: handle file not found error",
+			path:          "non/existent/file/path",
+			expectedError: &fileNotFoundError{},
 		},
 		{
-			name:         "case 5: handle reference not found error",
-			path:         "DCO",
-			ref:          "does-not-exist",
-			errorMatcher: IsReferenceNotFound,
+			name:          "case 5: handle reference not found error",
+			path:          "DCO",
+			ref:           "does-not-exist",
+			expectedError: &ReferenceNotFoundError{},
 		},
 	}
 
@@ -447,13 +557,13 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			content, err := repo.GetFileContent(tc.path, tc.ref)
 
 			switch {
-			case err == nil && tc.errorMatcher == nil:
+			case err == nil && tc.expectedError == nil:
 				// correct; carry on
-			case err != nil && tc.errorMatcher == nil:
+			case err != nil && tc.expectedError == nil:
 				t.Fatalf("error == %#v, want nil", err)
-			case err == nil && tc.errorMatcher != nil:
+			case err == nil && tc.expectedError != nil:
 				t.Fatalf("error == nil, want non-nil")
-			case !tc.errorMatcher(err):
+			case reflect.TypeOf(tc.expectedError) != reflect.TypeOf(err):
 				t.Fatalf("error == %#v, want matching", err)
 			}
 
@@ -496,11 +606,11 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
-		name         string
-		path         string
-		expected     string
-		ref          string
-		errorMatcher func(err error) bool
+		name          string
+		path          string
+		expected      string
+		ref           string
+		expectedError error
 	}{
 		{
 			name:     "case 0: get folder contents",
@@ -520,15 +630,15 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 			ref:      "v2.0.0",
 		},
 		{
-			name:         "case 3: folder not found error",
-			path:         "non/existent",
-			errorMatcher: IsFolderNotFound,
+			name:          "case 3: folder not found error",
+			path:          "non/existent",
+			expectedError: &folderNotFoundError{},
 		},
 		{
-			name:         "case 4: handle reference not found error",
-			path:         "DCO",
-			ref:          "does-not-exist",
-			errorMatcher: IsReferenceNotFound,
+			name:          "case 4: handle reference not found error",
+			path:          "DCO",
+			ref:           "does-not-exist",
+			expectedError: &ReferenceNotFoundError{},
 		},
 	}
 
@@ -558,13 +668,13 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 			files, err := repo.GetFolderContent(tc.path, tc.ref)
 
 			switch {
-			case err == nil && tc.errorMatcher == nil:
+			case err == nil && tc.expectedError == nil:
 				// correct; carry on
-			case err != nil && tc.errorMatcher == nil:
+			case err != nil && tc.expectedError == nil:
 				t.Fatalf("error == %#v, want nil", err)
-			case err == nil && tc.errorMatcher != nil:
+			case err == nil && tc.expectedError != nil:
 				t.Fatalf("error == nil, want non-nil")
-			case !tc.errorMatcher(err):
+			case reflect.TypeOf(tc.expectedError) != reflect.TypeOf(err):
 				t.Fatalf("error == %#v, want matching", err)
 			}
 
