@@ -70,7 +70,7 @@ func Test_New_optionalURL(t *testing.T) {
 }
 
 // Test_Repo_EnsureUpToDate_nosuchrepo tests that EnsureUpToDate returns
-// a repositoryNotFoundError when the repo does not exist.
+// a RepositoryNotFoundError when the repo does not exist.
 func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 	t.Parallel()
 
@@ -95,17 +95,17 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 		}
 	}
 
-	// Ensure we get a repositoryNotFoundError when we don't have repo on the filesystem
+	// Ensure we get a RepositoryNotFoundError when we don't have repo on the filesystem
 	err = repo.EnsureUpToDate(ctx)
-	if !errors.Is(err, &repositoryNotFoundError{}) {
-		t.Fatalf("err = %v, want %v", err, repositoryNotFoundError{})
+	if !errors.Is(err, &RepositoryNotFoundError{}) {
+		t.Fatalf("err = %v, want %v", err, RepositoryNotFoundError{})
 	}
 
 	// Even if clone fails the first time, it's leaking the directory on the filesystem.
-	// Ensure we keep getting a repositoryNotFoundError once repo is on the filesystem.
+	// Ensure we keep getting a RepositoryNotFoundError once repo is on the filesystem.
 	err = repo.EnsureUpToDate(ctx)
-	if !errors.Is(err, &repositoryNotFoundError{}) {
-		t.Fatalf("err = %v, want %v", err, repositoryNotFoundError{})
+	if !errors.Is(err, &RepositoryNotFoundError{}) {
+		t.Fatalf("err = %v, want %v", err, RepositoryNotFoundError{})
 	}
 }
 
@@ -522,7 +522,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 		{
 			name:          "case 4: handle file not found error",
 			path:          "non/existent/file/path",
-			expectedError: &fileNotFoundError{},
+			expectedError: &FileNotFoundError{},
 		},
 		{
 			name:          "case 5: handle reference not found error",
@@ -632,7 +632,7 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 		{
 			name:          "case 3: folder not found error",
 			path:          "non/existent",
-			expectedError: &folderNotFoundError{},
+			expectedError: &FolderNotFoundError{},
 		},
 		{
 			name:          "case 4: handle reference not found error",

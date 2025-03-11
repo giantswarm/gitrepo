@@ -43,7 +43,7 @@ type Repo struct {
 
 func New(config Config) (*Repo, error) {
 	if config.Dir == "" {
-		return nil, &invalidConfigError{message: fmt.Sprintf("%T.Dir must not be empty", config)}
+		return nil, &InvalidConfigError{message: fmt.Sprintf("%T.Dir must not be empty", config)}
 	}
 
 	var auth transport.AuthMethod
@@ -65,14 +65,14 @@ func New(config Config) (*Repo, error) {
 	if config.URL == "" {
 		repo, err := git.Open(storage, worktree)
 		if err != nil {
-			return nil, &invalidConfigError{message: fmt.Sprintf("%T.URL not set and failed to open repository with error %#q", config, err)}
+			return nil, &InvalidConfigError{message: fmt.Sprintf("%T.URL not set and failed to open repository with error %#q", config, err)}
 		}
 
 		remoteName := "origin"
 
 		remote, err := repo.Remote(remoteName)
 		if err != nil {
-			return nil, &invalidConfigError{message: fmt.Sprintf("%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)}
+			return nil, &InvalidConfigError{message: fmt.Sprintf("%T.URL not set and failed to find remote with name %#q with error %#q", config, remoteName, err)}
 		}
 
 		// According to
@@ -119,7 +119,7 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 			return err
 		}
 	} else if errors.Is(err, transport.ErrRepositoryNotFound) {
-		return &repositoryNotFoundError{message: fmt.Sprintf("%#q", r.url)}
+		return &RepositoryNotFoundError{message: fmt.Sprintf("%#q", r.url)}
 	} else if err != nil {
 		return err
 	}
@@ -137,7 +137,7 @@ func (r *Repo) EnsureUpToDate(ctx context.Context) error {
 		// In that case Fetch will be the first to realise that repo does not exist since Clone only performs an Open.
 		// Also, Clone creates the folder on the filesystem even if it fails, so you end simulate the same situation when
 		// you call EnsureUpToDate more that once on the same non-existent repo.
-		return &repositoryNotFoundError{message: fmt.Sprintf("%#q", r.url)}
+		return &RepositoryNotFoundError{message: fmt.Sprintf("%#q", r.url)}
 	} else if err != nil {
 		return err
 	}
@@ -224,7 +224,7 @@ func (r *Repo) HeadTag(ctx context.Context) (string, error) {
 		return "", &ReferenceNotFoundError{message: fmt.Sprintf("HEAD ref is not tagged (filtered for prefix: '%s')", tagPrefix)}
 	}
 	if len(filteredTags) > 1 {
-		return "", &executionFailedError{message: fmt.Sprintf("HEAD ref has multiple tags %v (filtered for prefix: '%s')", filteredTags, tagPrefix)}
+		return "", &ExecutionFailedError{message: fmt.Sprintf("HEAD ref has multiple tags %v (filtered for prefix: '%s')", filteredTags, tagPrefix)}
 	}
 
 	return filteredTags[0], nil
@@ -276,7 +276,7 @@ func (r *Repo) ResolveVersion(ctx context.Context, ref string) (string, error) {
 				}
 
 				if len(versionTags) > 1 {
-					return "", &executionFailedError{message: fmt.Sprintf("multiple version tags %#v found for hash %#q", versionTags, hash)}
+					return "", &ExecutionFailedError{message: fmt.Sprintf("multiple version tags %#v found for hash %#q", versionTags, hash)}
 				}
 			}
 		}
@@ -375,7 +375,7 @@ func (r *Repo) GetFileContent(path, ref string) ([]byte, error) {
 
 	file, err := worktree.Filesystem.Open(path)
 	if os.IsNotExist(err) {
-		return nil, &fileNotFoundError{message: fmt.Sprintf("%#q", path)}
+		return nil, &FileNotFoundError{message: fmt.Sprintf("%#q", path)}
 	} else if err != nil {
 		return nil, err
 	}
@@ -398,7 +398,7 @@ func (r *Repo) GetFolderContent(path, ref string) ([]os.FileInfo, error) {
 
 	files, err := worktree.Filesystem.ReadDir(path)
 	if os.IsNotExist(err) {
-		return nil, &folderNotFoundError{message: fmt.Sprintf("%#q", path)}
+		return nil, &FolderNotFoundError{message: fmt.Sprintf("%#q", path)}
 	} else if err != nil {
 		return nil, err
 	}

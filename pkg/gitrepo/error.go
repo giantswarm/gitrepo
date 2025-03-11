@@ -4,51 +4,51 @@ import (
 	"reflect"
 )
 
-type executionFailedError struct {
+type ExecutionFailedError struct {
 	message string
 }
 
-func (e *executionFailedError) Error() string {
-	return "executionFailedError: " + e.message
+func (e *ExecutionFailedError) Error() string {
+	return "ExecutionFailedError: " + e.message
 }
 
-func (e *executionFailedError) Is(target error) bool {
+func (e *ExecutionFailedError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-type invalidConfigError struct {
+type InvalidConfigError struct {
 	message string
 }
 
-func (e *invalidConfigError) Error() string {
-	return "invalidConfigError: " + e.message
+func (e *InvalidConfigError) Error() string {
+	return "InvalidConfigError: " + e.message
 }
 
-func (e *invalidConfigError) Is(target error) bool {
+func (e *InvalidConfigError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-type fileNotFoundError struct {
+type FileNotFoundError struct {
 	message string
 }
 
-func (e *fileNotFoundError) Error() string {
+func (e *FileNotFoundError) Error() string {
 	return "fileNotFoundError: " + e.message
 }
 
-func (e *fileNotFoundError) Is(target error) bool {
+func (e *FileNotFoundError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-type folderNotFoundError struct {
+type FolderNotFoundError struct {
 	message string
 }
 
-func (e *folderNotFoundError) Error() string {
+func (e *FolderNotFoundError) Error() string {
 	return "folderNotFoundError: " + e.message
 }
 
-func (e *folderNotFoundError) Is(target error) bool {
+func (e *FolderNotFoundError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
@@ -64,14 +64,14 @@ func (e *ReferenceNotFoundError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }
 
-type repositoryNotFoundError struct {
+type RepositoryNotFoundError struct {
 	message string
 }
 
-func (e *repositoryNotFoundError) Error() string {
+func (e *RepositoryNotFoundError) Error() string {
 	return "repositoryNotFoundError: " + e.message
 }
 
-func (e *repositoryNotFoundError) Is(target error) bool {
+func (e *RepositoryNotFoundError) Is(target error) bool {
 	return reflect.TypeOf(target) == reflect.TypeOf(e)
 }

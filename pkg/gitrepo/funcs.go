@@ -43,5 +43,5 @@ func TopLevel(ctx context.Context, path string) (string, error) {
 		p = d
 	}
 
-	return "", &executionFailedError{message: fmt.Sprintf("path %#q is not inside git repository", path)}
+	return "", &ExecutionFailedError{message: fmt.Sprintf("path %#q is not inside git repository", path)}
 }
