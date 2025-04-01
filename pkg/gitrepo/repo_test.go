@@ -29,7 +29,7 @@ func Test_New_optionalURL(t *testing.T) {
 	ctx := context.Background()
 
 	dir := "/tmp/gitrepo-test-new-optionalurl"
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	url := "git@github.com:giantswarm/gitrepo-test.git"
 
@@ -78,12 +78,12 @@ func Test_Repo_EnsureUpToDate_nosuchrepo(t *testing.T) {
 	var err error
 
 	dir := "/tmp/gitrepo-test-ensureuptodate-nosuchrepo"
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// Checkout the gitrepo-test repository.
 	var repo *Repo
 	{
-		defer os.RemoveAll(dir)
+		defer func() { _ = os.RemoveAll(dir) }()
 
 		c := Config{
 			Dir: dir,
@@ -115,12 +115,12 @@ func Test_Repo_Head(t *testing.T) {
 	var err error
 
 	dir := "/tmp/gitrepo-test-repo-headbranch"
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	// Checkout the gitrepo-test repository.
 	var repo *Repo
 	{
-		defer os.RemoveAll(dir)
+		defer func() { _ = os.RemoveAll(dir) }()
 
 		c := Config{
 			Dir: dir,
@@ -406,7 +406,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 	}
 
 	dir := "/tmp/gitrepo-test-repo-resolveversion"
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	c := Config{
 		Dir: dir,
@@ -537,7 +537,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 			t.Log(tc.name)
 
 			dir := fmt.Sprintf("/tmp/gitrepo-test-repo-getfilecontent-%d", i)
-			defer os.RemoveAll(dir)
+			defer func() { _ = os.RemoveAll(dir) }()
 
 			c := Config{
 				Dir: dir,
@@ -577,7 +577,7 @@ func Test_Repo_GetFileContent(t *testing.T) {
 							t.Fatal(err)
 						}
 					}
-					expectedContent, err = os.ReadFile(golden)
+					expectedContent, err = os.ReadFile(golden) // #nosec G304
 					if err != nil {
 						t.Fatal(err)
 					}
@@ -643,7 +643,7 @@ func Test_Repo_GetFolderContent(t *testing.T) {
 	}
 
 	dir := "/tmp/gitrepo-test-repo-getfoldercontent"
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 
 	c := Config{
 		Dir: dir,
