@@ -2,7 +2,7 @@ module github.com/giantswarm/gitrepo
 
 go 1.23.0
 
-toolchain go1.24.5
+toolchain go1.24.6
 
 require (
 	github.com/go-errors/errors v1.5.1
