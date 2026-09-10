@@ -288,49 +288,49 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "2091354c7b8659f1846a876fbe2032fd1390d569",
-			expectedVersion: "0.0.0-dev.test-branch.2019-11-08.11-42-00",
+			expectedVersion: "0.0.0-r57a8dd33t20191108114200",
 		},
 		{
 			name:            "case 5: untagged commit without tagged parent with detached head",
 			inputHeadTarget: "2091354c7b8659f1846a876fbe2032fd1390d569",
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "HEAD",
-			expectedVersion: "0.0.0-dev.test-branch.2019-11-08.11-42-00",
+			expectedVersion: "0.0.0-r57a8dd33t20191108114200",
 		},
 		{
 			name:            "case 6: untagged commit with single tagged parent",
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "5ff7013b7a5f43d39b8da62361cfbfd4d3bf9a50",
-			expectedVersion: "1.0.1-dev.test-branch.2019-11-08.11-45-03",
+			expectedVersion: "1.0.1-r57a8dd33t20191108114503",
 		},
 		{
 			name:            "case 7: another untagged commit with single tagged parent",
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "0c57573cece531f840a167aa0ccc29b178b6de42",
-			expectedVersion: "2.0.1-dev.test-branch.2019-11-08.11-45-05",
+			expectedVersion: "2.0.1-r57a8dd33t20191108114505",
 		},
 		{
 			name:            "case 8: untagged commit with multiple tagged parents",
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "c3726de44a2bb1bd898fdbe5632a90841636fa82",
-			expectedVersion: "2.0.1-dev.test-branch.2019-11-08.11-45-06",
+			expectedVersion: "2.0.1-r57a8dd33t20191108114506",
 		},
 		{
 			name:            "case 9: untagged branch with single tagged parent",
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "origin/branch-of-2.0.0",
-			expectedVersion: "2.0.1-dev.test-branch.2019-11-08.11-45-06",
+			expectedVersion: "2.0.1-r57a8dd33t20191108114506",
 		},
 		{
 			name:            "case 10: untagged branch with multiple tagged parents",
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "origin/branch-of-1.0.0",
-			expectedVersion: "2.0.1-dev.test-branch.2019-11-08.11-45-06",
+			expectedVersion: "2.0.1-r57a8dd33t20191108114506",
 		},
 		{
 			name:            "case 11: unknown reference",
@@ -343,7 +343,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 			inputHeadTarget: masterTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "origin/complex-tree",
-			expectedVersion: "0.0.0-dev.test-branch.2019-11-18.12-08-09",
+			expectedVersion: "0.0.0-r57a8dd33t20191118120809",
 		},
 		{
 			name:            "case 13: ...",
@@ -380,7 +380,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				branchEnvVarName:    "test-branch",
 			},
 			inputRef:        "4707825fd7775c69fbd2f72a990e315b367b5409",
-			expectedVersion: "0.2.1-dev.test-branch.2024-07-25.13-13-06",
+			expectedVersion: "0.2.1-r57a8dd33t20240725131306",
 		},
 		{
 			name:            "case 17: ...",
@@ -390,14 +390,14 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				branchEnvVarName:    "test-branch",
 			},
 			inputRef:        "57aae3db71bcd176dd5a39eb8b487aae54930dcd",
-			expectedVersion: "0.0.0-dev.test-branch.2024-07-25.13-14-06",
+			expectedVersion: "0.0.0-r57a8dd33t20240725131406",
 		},
 		{
 			name:            "case 18: ...",
 			inputHeadTarget: monorepoTarget,
 			environment:     map[string]string{branchEnvVarName: "test-branch"},
 			inputRef:        "ab61bc963b844551ffaf080f84d217e483323210",
-			expectedVersion: "2.0.1-dev.test-branch.2024-07-25.13-13-25",
+			expectedVersion: "2.0.1-r57a8dd33t20240725131325",
 		},
 		{
 			name:            "case 19: ...",
@@ -407,7 +407,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 				tagPrefixEnvVarName: "module-a",
 				branchEnvVarName:    "test-branch",
 			},
-			expectedVersion: "0.0.0-dev.test-branch.2020-04-24.08-41-47",
+			expectedVersion: "0.0.0-r57a8dd33t20200424084147",
 		},
 	}
 
@@ -472,11 +472,12 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 					t.Fatalf("error == %#v, want matching", err)
 				}
 
-				// Dev versions carry a trailing ".h<7-hex>" short hash of the
+				// Dev versions carry a trailing "h<7-hex>" short hash of the
 				// resolved commit. Derive it from the same ref so the table can
-				// keep the stable, hash-free prefix as the expectation.
+				// keep the stable, hash-free prefix as the expectation. Every
+				// expectation that is neither stable nor an RC is a dev prefix.
 				expected := tc.expectedVersion
-				if strings.Contains(expected, "-dev.") {
+				if expected != "" && !IsValidStable(expected) && !IsValidRC(expected) {
 					gitRepo, err := git.Open(repo.storage, repo.worktree)
 					if err != nil {
 						t.Fatalf("opening repo to resolve commit hash: %v", err)
@@ -485,7 +486,7 @@ func Test_Repo_ResolveVersion(t *testing.T) {
 					if err != nil {
 						t.Fatalf("resolving %q: %v", tc.inputRef, err)
 					}
-					expected += ".h" + h.String()[:devShortSHALen]
+					expected += "h" + h.String()[:devShortSHALen]
 				}
 
 				if version != expected {
@@ -717,41 +718,6 @@ func containsFile(files []os.FileInfo, fileName string) bool {
 	return false
 }
 
-func Test_sanitizeBranchName(t *testing.T) {
-	t.Parallel()
-
-	cases := []struct {
-		input    string
-		expected string
-	}{
-		{"main", "main"},
-		{"my-feature", "my-feature"},
-		{"feature/my-thing", "feature-my-thing"},
-		{"feature_underscored", "feature-underscored"},
-		{"feat/sub/deep", "feat-sub-deep"},
-		{"already-clean-123", "already-clean-123"},
-		{"feat//double-slash", "feat-double-slash"}, // consecutive invalid chars → single hyphen
-		{"__leading", "leading"},                    // leading invalid chars trimmed
-		{"trailing__", "trailing"},                  // trailing invalid chars trimmed
-		{"Feature/MyThing", "feature-mything"},      // lowercased
-		{"UPPER", "upper"},                          // lowercased
-		{"a--b", "a-b"},                             // hyphen runs collapsed ("--" reserved as marker)
-		{"///", "unknown"},                          // empty result falls back to unknownBranch
-		{"0042", "42"},                              // all-digit branch: leading zeros stripped (illegal semVer numeric id)
-		{"007", "7"},                                // all-digit branch: leading zeros stripped
-		{"000", "0"},                                // all zeros collapse to a single "0"
-		{"42", "42"},                                // numeric without leading zero is kept
-		{"0-1", "0-1"},                              // contains a hyphen → alphanumeric id, leading zero kept
-	}
-
-	for _, tc := range cases {
-		got := sanitizeBranchName(tc.input)
-		if got != tc.expected {
-			t.Errorf("sanitizeBranchName(%q) = %q, want %q", tc.input, got, tc.expected)
-		}
-	}
-}
-
 func Test_incrementPatch(t *testing.T) {
 	t.Parallel()
 
@@ -787,24 +753,24 @@ func Test_incrementPatch(t *testing.T) {
 	}
 }
 
-func Test_currentBranch_envOverride(t *testing.T) {
+func Test_CurrentBranch_envOverride(t *testing.T) {
 	t.Setenv(branchEnvVarName, "my-override-branch")
-	got := currentBranch()
+	got := CurrentBranch()
 	if got != "my-override-branch" {
-		t.Errorf("currentBranch() = %q, want %q", got, "my-override-branch")
+		t.Errorf("CurrentBranch() = %q, want %q", got, "my-override-branch")
 	}
 }
 
-func Test_currentBranch_unknownFallback(t *testing.T) {
+func Test_CurrentBranch_unknownFallback(t *testing.T) {
 	t.Setenv(branchEnvVarName, "")
 	t.Chdir(t.TempDir())
-	got := currentBranch()
+	got := CurrentBranch()
 	if got != "unknown" {
-		t.Errorf("currentBranch() = %q, want %q (non-git dir should fall back)", got, "unknown")
+		t.Errorf("CurrentBranch() = %q, want %q (non-git dir should fall back)", got, "unknown")
 	}
 }
 
-func Test_currentBranch_detachedHead(t *testing.T) {
+func Test_CurrentBranch_detachedHead(t *testing.T) {
 	dir := t.TempDir()
 	gitRepo, err := git.PlainInit(dir, false)
 	if err != nil {
@@ -817,9 +783,9 @@ func Test_currentBranch_detachedHead(t *testing.T) {
 	}
 	t.Setenv(branchEnvVarName, "")
 	t.Chdir(dir)
-	got := currentBranch()
+	got := CurrentBranch()
 	if got != "HEAD" {
-		t.Errorf("currentBranch() = %q, want %q (detached HEAD should return \"HEAD\")", got, "HEAD")
+		t.Errorf("CurrentBranch() = %q, want %q (detached HEAD should return \"HEAD\")", got, "HEAD")
 	}
 }
 
@@ -888,7 +854,7 @@ func Test_Repo_ResolveVersion_rcAncestor(t *testing.T) {
 	}
 	// Timestamp is the committer date of the HEAD commit (base + 2h); the
 	// trailing segment is the short hash of the resolved HEAD commit.
-	want := "1.0.1-dev.test-branch.2020-01-01.02-00-00.h" + headHash.String()[:devShortSHALen]
+	want := "1.0.1-r57a8dd33t20200101020000h" + headHash.String()[:devShortSHALen]
 	if version != want {
 		t.Errorf("ResolveVersion = %q, want %q — RC ancestor must be skipped, base must come from v1.0.0", version, want)
 	}
@@ -945,7 +911,7 @@ func Test_Repo_ResolveVersion_nonReachableTagIgnored(t *testing.T) {
 	}
 	// Timestamp is the committer date of the HEAD commit (base + 2h); the
 	// trailing segment is the short hash of the resolved HEAD commit.
-	want := "1.0.1-dev.test-branch.2020-01-01.02-00-00.h" + headHash.String()[:devShortSHALen]
+	want := "1.0.1-r57a8dd33t20200101020000h" + headHash.String()[:devShortSHALen]
 	if version != want {
 		t.Errorf("ResolveVersion = %q, want %q — non-reachable v2.0.0 on side branch must be ignored", version, want)
 	}
@@ -1007,7 +973,7 @@ func Test_Repo_ResolveVersion_devBuild_multipleAncestorTags_picksHighest(t *test
 	if err != nil {
 		t.Fatalf("ResolveVersion: unexpected error %v", err)
 	}
-	want := "1.0.2-dev.test-branch.2020-01-01.01-00-00.h" + head.String()[:7]
+	want := "1.0.2-r57a8dd33t20200101010000h" + head.String()[:7]
 	if version != want {
 		t.Errorf("ResolveVersion = %q, want %q (dev base from highest ancestor tag 1.0.1)", version, want)
 	}

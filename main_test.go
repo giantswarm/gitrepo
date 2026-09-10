@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -57,5 +59,39 @@ func Test_runNext_unknownBumpType(t *testing.T) {
 	t.Parallel()
 	if err := runNext("bogus", "v1.2.3"); err == nil {
 		t.Error("runNext with unknown bump type should return error")
+	}
+}
+
+func Test_runBranchHash_explicitBranch(t *testing.T) {
+	t.Parallel()
+	var out bytes.Buffer
+	if err := runBranchHash(&out, []string{"my-feature"}); err != nil {
+		t.Fatalf("runBranchHash(my-feature) = %v, want nil", err)
+	}
+	// The fingerprint of "my-feature" from the RFC's own example.
+	if got := strings.TrimSpace(out.String()); got != "7b5b4fa7" {
+		t.Errorf("runBranchHash printed %q, want %q", got, "7b5b4fa7")
+	}
+}
+
+func Test_runBranchHash_currentBranch(t *testing.T) {
+	// Not parallel: t.Setenv pins the branch so the test does not depend on
+	// which branch the repository is checked out on.
+	t.Setenv("GS_BRANCH_NAME", "my-feature")
+	var out bytes.Buffer
+	if err := runBranchHash(&out, nil); err != nil {
+		t.Fatalf("runBranchHash(nil) = %v, want nil", err)
+	}
+	if got := strings.TrimSpace(out.String()); got != "7b5b4fa7" {
+		t.Errorf("runBranchHash printed %q, want %q", got, "7b5b4fa7")
+	}
+}
+
+func Test_newRootCmd_registersBranchHash(t *testing.T) {
+	t.Parallel()
+	for _, name := range []string{"get", "next", "validate", "branch-hash"} {
+		if _, _, err := newRootCmd().Find([]string{name}); err != nil {
+			t.Errorf("newRootCmd() does not register %q: %v", name, err)
+		}
 	}
 }

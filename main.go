@@ -5,6 +5,7 @@
 //	gitsemver get [--dir <path>] [--ref <ref>]
 //	gitsemver next <bump-type> [--last-tag <tag>]
 //	gitsemver validate [--type dev|rc|stable|any] <version>
+//	gitsemver branch-hash [branch]
 //
 // The "get" subcommand resolves and prints the version for a git ref:
 //
@@ -12,10 +13,12 @@
 //	For a pre-release tag (vX.Y.Z-rc.N) it prints X.Y.Z-rc.N.
 //	For an untagged ref it prints a dev build:
 //
-//	    X.Y.(Z+1)-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>
+//	    X.Y.(Z+1)-r<branch-hash>t<YYYYMMDDHHMMSS>h<commit-sha>
 //
 //	where X.Y.Z is the most recent stable ancestor tag reachable from the ref,
-//	or 0.0.0 when none exists.
+//	or 0.0.0 when none exists, <branch-hash> is the 8-hex CRC32 of the branch
+//	name, the time stamp is the committer date of the ref in UTC, and
+//	<commit-sha> is the 7-char git short hash of the ref.
 //
 // The "next" subcommand computes the next semver tag from the highest-semver tag
 // reachable from HEAD. Valid bump types from a stable tag: patch, minor, major,
@@ -24,34 +27,36 @@
 //
 // The "validate" subcommand checks whether a version string matches the
 // expected format.  It exits 0 and prints "valid" on success, exits 1 and
-// prints "invalid" otherwise.
+// prints "invalid" otherwise.  For dev builds it accepts both the current
+// schema and the superseded "-dev.<branch>.<date>.<time>" one.
+//
+// The "branch-hash" subcommand prints the 8-hex CRC32 fingerprint that a dev
+// build embeds for a branch, so it can be used in a Flux semver filter. Without
+// an argument it uses the current branch.
 //
 // Environment variables:
 //
-//	GS_BRANCH_NAME      Override the branch name embedded in dev builds.
+//	GS_BRANCH_NAME      Override the branch name that dev builds fingerprint.
 //	                    Defaults to the HEAD branch of the repo, then "unknown".
 //	GS_GIT_TAG_PREFIX   Monorepo support: only consider tags prefixed with
 //	                    "<value>/", e.g. "module-a/v1.2.3". The "next --last-tag"
 //	                    flag accepts both prefixed ("module-a/v1.2.3") and bare
 //	                    ("v1.2.3") forms; the prefix is stripped automatically.
-//	GS_MAX_VERSION_LENGTH
-//	                    Maximum length of a generated dev build version, so it
-//	                    stays usable as a Kubernetes attribute. Defaults to 63.
-//	                    Only the branch part is shortened to fit.
 package main
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
 
 	"github.com/spf13/cobra"
 
-	"github.com/giantswarm/gitsemver/v2/pkg/gitsemver"
-	"github.com/giantswarm/gitsemver/v2/pkg/project"
+	"github.com/giantswarm/gitsemver/v3/pkg/gitsemver"
+	"github.com/giantswarm/gitsemver/v3/pkg/project"
 )
 
 // errInvalidVersion is returned by runValidate when the version string does
@@ -105,7 +110,7 @@ func newRootCmd() *cobra.Command {
 	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
 		return &usageError{err}
 	})
-	root.AddCommand(newGetCmd(), newNextCmd(), newValidateCmd())
+	root.AddCommand(newGetCmd(), newNextCmd(), newValidateCmd(), newBranchHashCmd())
 	return root
 }
 
@@ -154,6 +159,17 @@ func newValidateCmd() *cobra.Command {
 		return []string{"dev", "rc", "stable", "any"}, cobra.ShellCompDirectiveNoFileComp
 	})
 	return cmd
+}
+
+func newBranchHashCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "branch-hash [branch]",
+		Short: "Print the CRC32 branch fingerprint that dev build versions embed.",
+		Args:  usageArgs(cobra.MaximumNArgs(1)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return runBranchHash(cmd.OutOrStdout(), args)
+		},
+	}
 }
 
 func runGet(dir, ref string) error {
@@ -232,6 +248,20 @@ func runNext(bumpType, lastTag string) error {
 
 	fmt.Println(version)
 	return nil
+}
+
+// runBranchHash prints the fingerprint of the branch named in args, or of the
+// current branch when args is empty. It writes to out so a test can read the
+// value back; the other runners print their single line directly.
+func runBranchHash(out io.Writer, args []string) error {
+	var branch string
+	if len(args) > 0 {
+		branch = args[0]
+	} else {
+		branch = gitsemver.CurrentBranch()
+	}
+	_, err := fmt.Fprintln(out, gitsemver.BranchHash(branch))
+	return err
 }
 
 func runValidate(typFlag, version string) error {

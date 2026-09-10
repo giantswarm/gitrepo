@@ -6,42 +6,30 @@ import (
 	"time"
 )
 
-func Test_truncateBranch(t *testing.T) {
+func Test_BranchHash(t *testing.T) {
 	t.Parallel()
 
 	cases := []struct {
 		name     string
 		branch   string
-		budget   int
 		expected string
 	}{
-		{"fits unchanged", "my-feature", 33, "my-feature"},
-		{"fits exactly", "my-feature", 10, "my-feature"},
-		{
-			name:     "middle dropped, head and tail kept",
-			branch:   "renovate-update-all-dependencies-to-latest",
-			budget:   24,
-			expected: "renovate-up--s-to-latest",
-		},
-		{
-			name:     "tail biased larger on odd budget",
-			branch:   "aaaaaaaaaabbbbbbbbbbcccccccccc",
-			budget:   13,
-			expected: "aaaaa--cccccc", // keep=11 → head 5, tail 6
-		},
-		{"tiny budget falls back to head cut", "abcdefghij", 3, "abc"},
+		// The RFC's own example. It pins the implementation to CRC-32/ISO-HDLC;
+		// another CRC32 variant (e.g. the one POSIX cksum uses) gives a
+		// different value here.
+		{"RFC example", "my-feature", "7b5b4fa7"},
+		// The raw branch name is hashed, slash and all — no sanitizing first.
+		{"unsanitized name", "renovate/update-all-dependencies-to-latest", "08a93c50"},
+		{"empty name", "", "00000000"},
 	}
 
 	for _, tc := range cases {
-		got := truncateBranch(tc.branch, tc.budget)
+		got := BranchHash(tc.branch)
 		if got != tc.expected {
-			t.Errorf("%s: truncateBranch(%q, %d) = %q, want %q", tc.name, tc.branch, tc.budget, got, tc.expected)
+			t.Errorf("%s: BranchHash(%q) = %q, want %q", tc.name, tc.branch, got, tc.expected)
 		}
-		if len(got) > tc.budget {
-			t.Errorf("%s: result %q exceeds budget %d", tc.name, got, tc.budget)
-		}
-		if strings.HasPrefix(got, "-") || strings.HasSuffix(got, "-") {
-			t.Errorf("%s: result %q must not start or end with a hyphen", tc.name, got)
+		if len(got) != 8 {
+			t.Errorf("%s: BranchHash(%q) = %q, want 8 characters", tc.name, tc.branch, got)
 		}
 	}
 }
@@ -52,12 +40,13 @@ func Test_buildDevVersion(t *testing.T) {
 	ts := time.Date(2026, 1, 27, 9, 49, 59, 0, time.UTC)
 	sha := "1a2b3c4d5e6f7a8b9c0d"
 
-	t.Run("short branch keeps the full name", func(t *testing.T) {
-		got, err := buildDevVersion("1.2.4", "my-feature", sha, ts, 63)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		want := "1.2.4-dev.my-feature.2026-01-27.09-49-59.h1a2b3c4"
+	t.Run("matches the RFC example, with the readable separators", func(t *testing.T) {
+		// The RFC spells the separators "b", "t" and "c". "b" and "c" are hex
+		// digits, so a reader cannot see where a field ends. "r", "t" and "h"
+		// carry the same meaning and none of them is a hex digit. Every other
+		// property of the RFC example is unchanged, the CRC value included.
+		got := buildDevVersion("1.9.2", "my-feature", sha, ts)
+		want := "1.9.2-r7b5b4fa7t20260127094959h1a2b3c4"
 		if got != want {
 			t.Errorf("got %q, want %q", got, want)
 		}
@@ -66,91 +55,84 @@ func Test_buildDevVersion(t *testing.T) {
 		}
 	})
 
-	t.Run("long branch is middle-truncated to fit", func(t *testing.T) {
-		got, err := buildDevVersion("1.2.4", "renovate-update-all-dependencies-to-latest", sha, ts, 63)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
+	t.Run("the pre-release part is fixed width and label-safe", func(t *testing.T) {
+		branches := []string{
+			"x",
+			"my-feature",
+			"renovate/update-all-dependencies-to-latest",
+			strings.Repeat("very-long-branch-name/", 20),
 		}
-		want := "1.2.4-dev.renovate-up--s-to-latest.2026-01-27.09-49-59.h1a2b3c4"
-		if got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
-		if len(got) > 63 {
-			t.Errorf("result %q (len %d) exceeds the 63 char budget", got, len(got))
-		}
-		if !IsValidDev(got) {
-			t.Errorf("%q is not a valid dev version", got)
-		}
-	})
-
-	t.Run("multi-digit version base shrinks the branch budget", func(t *testing.T) {
-		branch := "renovate-update-all-dependencies-to-latest"
-		// The overhead is derived from len(base), so a wider base leaves less
-		// room for the branch. Every result must still be valid and within 63.
-		for _, base := range []string{"1.2.4", "10.12.346", "100.200.3456"} {
-			got, err := buildDevVersion(base, branch, sha, ts, 63)
-			if err != nil {
-				t.Fatalf("base %s: unexpected error: %v", base, err)
-			}
-			if len(got) > 63 {
-				t.Errorf("base %s: %q (len %d) exceeds the 63 char budget", base, got, len(got))
-			}
-			if !IsValidDev(got) {
-				t.Errorf("base %s: %q is not a valid dev version", base, got)
+		for _, base := range []string{"0.0.0", "1.2.4", "100.200.3456"} {
+			for _, branch := range branches {
+				got := buildDevVersion(base, branch, sha, ts)
+				pre, found := strings.CutPrefix(got, base)
+				if !found {
+					t.Fatalf("base %s, branch %q: %q does not start with the base", base, branch, got)
+				}
+				// "-" + "r" + 8 + "t" + 14 + "h" + 7 = 33.
+				if len(pre) != 33 {
+					t.Errorf("base %s, branch %q: pre-release %q has length %d, want 33", base, branch, pre, len(pre))
+				}
+				// A trim of a concatenated label must never be able to cut on
+				// a "." or a "-", so neither may appear after the leading "-".
+				if strings.ContainsAny(pre[1:], ".-") {
+					t.Errorf("base %s, branch %q: pre-release %q must hold no %q and no %q", base, branch, pre, ".", "-")
+				}
+				if !IsValidDev(got) {
+					t.Errorf("base %s, branch %q: %q is not a valid dev version", base, branch, got)
+				}
 			}
 		}
 	})
 
 	t.Run("commit hash uses the 7-char short form", func(t *testing.T) {
-		got, err := buildDevVersion("0.0.0", "main", sha, ts, 63)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if !strings.HasSuffix(got, ".h1a2b3c4") {
-			t.Errorf("got %q, want trailing .h1a2b3c4", got)
+		got := buildDevVersion("0.0.0", "main", sha, ts)
+		if !strings.HasSuffix(got, "h1a2b3c4") {
+			t.Errorf("got %q, want trailing h1a2b3c4", got)
 		}
 	})
 
-	t.Run("errors when the fixed parts do not fit", func(t *testing.T) {
-		_, err := buildDevVersion("1.2.4", "main", sha, ts, 20)
-		if err == nil {
-			t.Errorf("expected an error for an impossibly small budget")
+	t.Run("a short commit hash gets leading zeros", func(t *testing.T) {
+		// go-git always yields a 40-character hash, so this cannot happen
+		// through ResolveVersion. The padding keeps the 33-character promise
+		// unconditional, which the doc comment and the README both state.
+		got := buildDevVersion("0.0.0", "main", "abc", ts)
+		if !strings.HasSuffix(got, "h0000abc") {
+			t.Errorf("got %q, want trailing h0000abc", got)
+		}
+		if !IsValidDev(got) {
+			t.Errorf("%q is not a valid dev version", got)
 		}
 	})
 
 	t.Run("per-branch order follows the timestamp", func(t *testing.T) {
-		older, _ := buildDevVersion("1.2.4", "feature", sha, ts, 63)
-		newer, _ := buildDevVersion("1.2.4", "feature", sha, ts.Add(time.Hour), 63)
-		// Same branch and hash, so the timestamp segment decides order and the
-		// lexical comparison of the full strings matches chronological order.
+		older := buildDevVersion("1.2.4", "feature", sha, ts)
+		newer := buildDevVersion("1.2.4", "feature", sha, ts.Add(time.Hour))
+		// Same branch and hash, so the "r<hash>t" prefix is constant and the
+		// fixed-width timestamp decides the order. semVer compares this single
+		// alphanumeric identifier lexically, which matches chronological order.
 		if older >= newer {
 			t.Errorf("expected %q < %q", older, newer)
 		}
 	})
-}
 
-func Test_resolveMaxVersionLength(t *testing.T) {
-	cases := []struct {
-		name       string
-		configured int
-		env        string
-		expected   int
-	}{
-		{"default when nothing set", 0, "", defaultMaxVersionLength},
-		{"configured value wins", 80, "100", 80},
-		{"env used when not configured", 0, "100", 100},
-		{"invalid env falls back to default", 0, "not-a-number", defaultMaxVersionLength},
-		{"non-positive env falls back to default", 0, "0", defaultMaxVersionLength},
-	}
+	t.Run("sorts above the superseded schema", func(t *testing.T) {
+		// "r" > "d", so a consumer on a bare range moves to the current schema
+		// at once instead of holding the last legacy tag. Both strings share
+		// the base and neither pre-release part is numeric, so a plain string
+		// compare gives the same answer as semVer precedence.
+		got := buildDevVersion("1.2.4", "my-feature", sha, ts)
+		legacy := "1.2.4-dev.my-feature.2026-01-27.09-49-59.h1a2b3c4"
+		if got <= legacy {
+			t.Errorf("expected %q > %q", got, legacy)
+		}
+	})
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			// An empty value is treated as unset by resolveMaxVersionLength.
-			t.Setenv(maxVersionLengthEnvVarName, tc.env)
-			got := resolveMaxVersionLength(tc.configured)
-			if got != tc.expected {
-				t.Errorf("resolveMaxVersionLength(%d) with env %q = %d, want %d", tc.configured, tc.env, got, tc.expected)
-			}
-		})
-	}
+	t.Run("different branches get different tags at the same second", func(t *testing.T) {
+		a := buildDevVersion("1.2.4", "feature-a", sha, ts)
+		b := buildDevVersion("1.2.4", "feature-b", sha, ts)
+		if a == b {
+			t.Errorf("branches feature-a and feature-b both produced %q", a)
+		}
+	})
 }

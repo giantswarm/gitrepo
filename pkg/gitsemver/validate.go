@@ -13,9 +13,15 @@ const vXYZ = `v?` + numID + `\.` + numID + `\.` + numID
 var validStableRegex = regexp.MustCompile(`^` + vXYZ + `$`)
 var validRCRegex = regexp.MustCompile(`^` + vXYZ + `-rc\.` + numID + `$`)
 
-// The trailing ".h<7-hex>" commit-hash segment is optional so that dev tags
-// generated before it was introduced still validate; generation always emits it.
-var validDevRegex = regexp.MustCompile(`^` + vXYZ + `-dev\.[a-zA-Z0-9-]+\.[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]{2}-[0-9]{2}-[0-9]{2}(?:\.h[0-9a-f]{7})?$`)
+// validDevRegex matches the current dev build schema
+// "X.Y.Z-r<8 hex>t<14 digits>h<7 hex>", the only schema generation emits.
+var validDevRegex = regexp.MustCompile(`^` + vXYZ + `-r[0-9a-f]{8}t[0-9]{14}h[0-9a-f]{7}$`)
+
+// validLegacyDevRegex matches the superseded dev build schema
+// "X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<7-hex>]". Tags in that format
+// are already published, so they must keep validating. The trailing commit-hash
+// segment is optional because it was added later than the rest of the schema.
+var validLegacyDevRegex = regexp.MustCompile(`^` + vXYZ + `-dev\.[a-zA-Z0-9-]+\.[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]{2}-[0-9]{2}-[0-9]{2}(?:\.h[0-9a-f]{7})?$`)
 
 // IsValidStable reports whether version is a valid stable release version
 // (X.Y.Z or vX.Y.Z, no leading zeros in any component).
@@ -29,13 +35,14 @@ func IsValidRC(version string) bool {
 	return validRCRegex.MatchString(version)
 }
 
-// IsValidDev reports whether version is a valid dev-build version
-// (X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<7-hex>] or with a leading v,
-// no leading zeros in X.Y.Z components). The trailing commit-hash segment is
-// optional. This checks the format only, not the length budget enforced when a
-// dev version is generated.
+// IsValidDev reports whether version is a valid dev-build version, with or
+// without a leading "v" and with no leading zeros in the X.Y.Z components. It
+// accepts both the current schema (X.Y.Z-b<8-hex>t<14-digits>h<7-hex>) and the
+// superseded one (X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<7-hex>]),
+// because tags in the old format are already published. This checks the shape
+// only, not whether the time stamp is a real date.
 func IsValidDev(version string) bool {
-	return validDevRegex.MatchString(version)
+	return validDevRegex.MatchString(version) || validLegacyDevRegex.MatchString(version)
 }
 
 // IsValid reports whether version is a valid version string in any of the
