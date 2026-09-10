@@ -88,13 +88,13 @@ func Test_IsValidDev(t *testing.T) {
 	t.Parallel()
 
 	valid := []string{
-		// current schema: -b<8 hex>t<14 digits>c<7 hex>
-		"1.9.2-b7b5b4fa7t20260127094959c1a2b3c4",
-		"0.0.0-b00000000t20260127094959c0000000",
-		"v1.9.2-b7b5b4fa7t20260127094959c1a2b3c4",
-		// all-digit branch hash and commit hash (legal because the "b" and "c"
+		// current schema: -r<8 hex>t<14 digits>h<7 hex>
+		"1.9.2-r7b5b4fa7t20260127094959h1a2b3c4",
+		"0.0.0-r00000000t20260127094959h0000000",
+		"v1.9.2-r7b5b4fa7t20260127094959h1a2b3c4",
+		// all-digit branch hash and commit hash (legal because the "r" and "h"
 		// prefixes keep both parts alphanumeric)
-		"1.2.4-b00123456t20260127094959c0012345",
+		"1.2.4-r00123456t20260127094959h0012345",
 		// legacy schema, still published on existing tags
 		"1.2.3-dev.main.2026-01-27.09-49-59",
 		"0.0.0-dev.main.2026-01-27.09-49-59",
@@ -119,26 +119,28 @@ func Test_IsValidDev(t *testing.T) {
 		"1.2.3",
 		"1.2.3-rc.1",
 		// current schema, branch hash not 8 lowercase hex characters
-		"1.9.2-b7b5b4fat20260127094959c1a2b3c4",
-		"1.9.2-b7b5b4fa7ft20260127094959c1a2b3c4",
-		"1.9.2-b7B5B4FA7t20260127094959c1a2b3c4",
+		"1.9.2-r7b5b4fat20260127094959h1a2b3c4",
+		"1.9.2-r7b5b4fa7ft20260127094959h1a2b3c4",
+		"1.9.2-r7B5B4FA7t20260127094959h1a2b3c4",
 		// current schema, timestamp not 14 digits
-		"1.9.2-b7b5b4fa7t2026012709495c1a2b3c4",
-		"1.9.2-b7b5b4fa7t202601270949590c1a2b3c4",
+		"1.9.2-r7b5b4fa7t2026012709495h1a2b3c4",
+		"1.9.2-r7b5b4fa7t202601270949590h1a2b3c4",
 		// current schema, commit hash not 7 lowercase hex characters
-		"1.9.2-b7b5b4fa7t20260127094959c1a2b3c",
-		"1.9.2-b7b5b4fa7t20260127094959c1a2b3c45",
-		"1.9.2-b7b5b4fa7t20260127094959c1A2B3C4",
+		"1.9.2-r7b5b4fa7t20260127094959h1a2b3c",
+		"1.9.2-r7b5b4fa7t20260127094959h1a2b3c45",
+		"1.9.2-r7b5b4fa7t20260127094959h1A2B3C4",
 		// current schema, missing a part separator
-		"1.9.2-b7b5b4fa720260127094959c1a2b3c4",
-		"1.9.2-7b5b4fa7t20260127094959c1a2b3c4",
+		"1.9.2-r7b5b4fa720260127094959h1a2b3c4",
+		"1.9.2-7b5b4fa7t20260127094959h1a2b3c4",
 		// current schema must hold no "." and no "-" in the pre-release part
-		"1.9.2-b7b5b4fa7.t20260127094959c1a2b3c4",
-		"1.9.2-b7b5b4fa7t20260127094959-c1a2b3c4",
+		"1.9.2-r7b5b4fa7.t20260127094959h1a2b3c4",
+		"1.9.2-r7b5b4fa7t20260127094959-h1a2b3c4",
+		// the "b"/"c" separators of an earlier draft were never published
+		"1.9.2-b7b5b4fa7t20260127094959c1a2b3c4",
 		// leading zeros in the version components
-		"01.9.2-b7b5b4fa7t20260127094959c1a2b3c4",
-		"1.09.2-b7b5b4fa7t20260127094959c1a2b3c4",
-		"1.9.02-b7b5b4fa7t20260127094959c1a2b3c4",
+		"01.9.2-r7b5b4fa7t20260127094959h1a2b3c4",
+		"1.09.2-r7b5b4fa7t20260127094959h1a2b3c4",
+		"1.9.02-r7b5b4fa7t20260127094959h1a2b3c4",
 		// missing time segment
 		"1.2.3-dev.main.2026-01-27",
 		// commit-hash segment missing the "h" prefix
@@ -192,8 +194,8 @@ func Test_IsValid(t *testing.T) {
 		"1.2.3-rc.1",
 		"v1.2.3-rc.1",
 		// dev, current schema
-		"1.9.2-b7b5b4fa7t20260127094959c1a2b3c4",
-		"v1.9.2-b7b5b4fa7t20260127094959c1a2b3c4",
+		"1.9.2-r7b5b4fa7t20260127094959h1a2b3c4",
+		"v1.9.2-r7b5b4fa7t20260127094959h1a2b3c4",
 		// dev, legacy schema
 		"1.2.4-dev.main.2026-01-27.09-49-59",
 		"v1.2.4-dev.main.2026-01-27.09-49-59",

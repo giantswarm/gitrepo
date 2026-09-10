@@ -14,7 +14,7 @@ Version resolution rules:
 
 - Commit carrying `vX.Y.Z` → prints `X.Y.Z`
 - Commit carrying `vX.Y.Z-rc.N` → prints `X.Y.Z-rc.N`
-- Untagged commit → dev build: `X.Y.(Z+1)-b<CRC32-of-branch>t<YYYYMMDDHHMMSS>c<7-char-SHA>`
+- Untagged commit → dev build: `X.Y.(Z+1)-r<CRC32-of-branch>t<YYYYMMDDHHMMSS>h<7-char-SHA>`
 - When a commit carries multiple version tags, the **highest semver tag wins** and a warning is written to
   `warn`
 
@@ -53,12 +53,16 @@ pkg/project/       Version/GitSHA/BuildTimestamp metadata
 - `tagRegex` matches `vX.Y.Z` and `vX.Y.Z-rc.N` (no leading zeros)
 - `stableTagRegex` matches only `vX.Y.Z`
 
-**Dev build tags** follow [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades).
+**Dev build tags** follow [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades),
+except for the separator letters: the RFC spells them `b`, `t` and `c`, this tool uses `r` (ref), `t` (time)
+and `h` (hash), because `b` and `c` are hex digits and hide the field boundaries. The RFC needs an amendment.
 The pre-release part is always 33 characters and holds no `.` and no `-`, so a caller that concatenates the
 version into a Kubernetes label and trims it cannot cut the pre-release part on an illegal character (a
 prefix long enough to push the cut into `X.Y.Z` can still land on the leading `-`). A current tag sorts
-_below_ a superseded one at the same `X.Y.Z`, because `b` < `d`; a consumer must filter on `.*-b<hash>t.*`
-rather than on a bare `*-*` range. `BranchHash` uses
+_above_ a superseded one at the same `X.Y.Z`, because `r` > `d`. Against `-rc.N` at the same base the order
+depends on the first digit of the branch hash: `0` to `b` below the RC, `c` to `f` above it — select dev
+builds with a `.*-r<hash>t.*` filter, not a bare range. None of `r`, `t` and `h` is a hex digit, so a reader
+can always tell where a field ends. `BranchHash` uses
 CRC-32/ISO-HDLC (`hash/crc32.ChecksumIEEE`) — not the POSIX `cksum` variant. Nothing in the tag is ever
 truncated. `IsValidDev` also accepts the superseded `-dev.<branch>.<date>.<time>[.h<sha>]` schema, because
 tags in that format are already published; `ResolveVersion` only ever generates the current one.

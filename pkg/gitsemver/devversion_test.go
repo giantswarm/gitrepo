@@ -40,9 +40,13 @@ func Test_buildDevVersion(t *testing.T) {
 	ts := time.Date(2026, 1, 27, 9, 49, 59, 0, time.UTC)
 	sha := "1a2b3c4d5e6f7a8b9c0d"
 
-	t.Run("matches the RFC example", func(t *testing.T) {
+	t.Run("matches the RFC example, with the readable separators", func(t *testing.T) {
+		// The RFC spells the separators "b", "t" and "c". "b" and "c" are hex
+		// digits, so a reader cannot see where a field ends. "r", "t" and "h"
+		// carry the same meaning and none of them is a hex digit. Every other
+		// property of the RFC example is unchanged, the CRC value included.
 		got := buildDevVersion("1.9.2", "my-feature", sha, ts)
-		want := "1.9.2-b7b5b4fa7t20260127094959c1a2b3c4"
+		want := "1.9.2-r7b5b4fa7t20260127094959h1a2b3c4"
 		if got != want {
 			t.Errorf("got %q, want %q", got, want)
 		}
@@ -65,7 +69,7 @@ func Test_buildDevVersion(t *testing.T) {
 				if !found {
 					t.Fatalf("base %s, branch %q: %q does not start with the base", base, branch, got)
 				}
-				// "-" + "b" + 8 + "t" + 14 + "c" + 7 = 33.
+				// "-" + "r" + 8 + "t" + 14 + "h" + 7 = 33.
 				if len(pre) != 33 {
 					t.Errorf("base %s, branch %q: pre-release %q has length %d, want 33", base, branch, pre, len(pre))
 				}
@@ -83,8 +87,8 @@ func Test_buildDevVersion(t *testing.T) {
 
 	t.Run("commit hash uses the 7-char short form", func(t *testing.T) {
 		got := buildDevVersion("0.0.0", "main", sha, ts)
-		if !strings.HasSuffix(got, "c1a2b3c4") {
-			t.Errorf("got %q, want trailing c1a2b3c4", got)
+		if !strings.HasSuffix(got, "h1a2b3c4") {
+			t.Errorf("got %q, want trailing h1a2b3c4", got)
 		}
 	})
 
@@ -93,8 +97,8 @@ func Test_buildDevVersion(t *testing.T) {
 		// through ResolveVersion. The padding keeps the 33-character promise
 		// unconditional, which the doc comment and the README both state.
 		got := buildDevVersion("0.0.0", "main", "abc", ts)
-		if !strings.HasSuffix(got, "c0000abc") {
-			t.Errorf("got %q, want trailing c0000abc", got)
+		if !strings.HasSuffix(got, "h0000abc") {
+			t.Errorf("got %q, want trailing h0000abc", got)
 		}
 		if !IsValidDev(got) {
 			t.Errorf("%q is not a valid dev version", got)
@@ -104,11 +108,23 @@ func Test_buildDevVersion(t *testing.T) {
 	t.Run("per-branch order follows the timestamp", func(t *testing.T) {
 		older := buildDevVersion("1.2.4", "feature", sha, ts)
 		newer := buildDevVersion("1.2.4", "feature", sha, ts.Add(time.Hour))
-		// Same branch and hash, so the "b<hash>t" prefix is constant and the
+		// Same branch and hash, so the "r<hash>t" prefix is constant and the
 		// fixed-width timestamp decides the order. semVer compares this single
 		// alphanumeric identifier lexically, which matches chronological order.
 		if older >= newer {
 			t.Errorf("expected %q < %q", older, newer)
+		}
+	})
+
+	t.Run("sorts above the superseded schema", func(t *testing.T) {
+		// "r" > "d", so a consumer on a bare range moves to the current schema
+		// at once instead of holding the last legacy tag. Both strings share
+		// the base and neither pre-release part is numeric, so a plain string
+		// compare gives the same answer as semVer precedence.
+		got := buildDevVersion("1.2.4", "my-feature", sha, ts)
+		legacy := "1.2.4-dev.my-feature.2026-01-27.09-49-59.h1a2b3c4"
+		if got <= legacy {
+			t.Errorf("expected %q > %q", got, legacy)
 		}
 	})
 

@@ -14,8 +14,8 @@ var validStableRegex = regexp.MustCompile(`^` + vXYZ + `$`)
 var validRCRegex = regexp.MustCompile(`^` + vXYZ + `-rc\.` + numID + `$`)
 
 // validDevRegex matches the current dev build schema
-// "X.Y.Z-b<8 hex>t<14 digits>c<7 hex>", the only schema generation emits.
-var validDevRegex = regexp.MustCompile(`^` + vXYZ + `-b[0-9a-f]{8}t[0-9]{14}c[0-9a-f]{7}$`)
+// "X.Y.Z-r<8 hex>t<14 digits>h<7 hex>", the only schema generation emits.
+var validDevRegex = regexp.MustCompile(`^` + vXYZ + `-r[0-9a-f]{8}t[0-9]{14}h[0-9a-f]{7}$`)
 
 // validLegacyDevRegex matches the superseded dev build schema
 // "X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<7-hex>]". Tags in that format
@@ -37,7 +37,7 @@ func IsValidRC(version string) bool {
 
 // IsValidDev reports whether version is a valid dev-build version, with or
 // without a leading "v" and with no leading zeros in the X.Y.Z components. It
-// accepts both the current schema (X.Y.Z-b<8-hex>t<14-digits>c<7-hex>) and the
+// accepts both the current schema (X.Y.Z-b<8-hex>t<14-digits>h<7-hex>) and the
 // superseded one (X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<7-hex>]),
 // because tags in the old format are already published. This checks the shape
 // only, not whether the time stamp is a real date.

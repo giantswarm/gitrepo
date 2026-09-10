@@ -78,26 +78,27 @@ func BranchHash(branch string) string {
 }
 
 // buildDevVersion assembles a dev build version of the form
-// "X.Y.Z-b<branch-hash>t<YYYYMMDDHHMMSS>c<short-sha>", for example
-// "1.9.2-b7b5b4fa7t20260127094959c1a2b3c4".
+// "X.Y.Z-r<branch-hash>t<YYYYMMDDHHMMSS>h<short-sha>", for example
+// "1.9.2-r7b5b4fa7t20260127094959h1a2b3c4".
 //
 // The pre-release part is always 33 characters and holds no "." and no "-", so
 // a caller that concatenates the version into a Kubernetes label and trims the
-// result cannot cut it on a character Kubernetes rejects. The literal "b", "t"
-// and "c" prefixes keep every part alphanumeric: an all-digit pre-release
+// result cannot cut it on a character Kubernetes rejects. The literal "r", "t"
+// and "h" prefixes keep every part alphanumeric: an all-digit pre-release
 // identifier is compared numerically and forbids leading zeros, which would
-// break time stamps.
+// break time stamps. None of the three is a hex digit, so a reader can always
+// tell where a field ends.
 //
 // commitSHA is the full commit hash; its first devShortSHALen hex characters are
 // embedded. A shorter hash gets leading zeros, so the width never varies. For one
-// branch the "b<hash>t" prefix is constant, so semVer compares the fixed-width
+// branch the "r<hash>t" prefix is constant, so semVer compares the fixed-width
 // time stamps and the per-branch order stays chronological.
 func buildDevVersion(base, branch, commitSHA string, t time.Time) string {
 	short := commitSHA
 	if len(short) > devShortSHALen {
 		short = short[:devShortSHALen]
 	}
-	return fmt.Sprintf("%s-b%st%sc%0*s", base, BranchHash(branch), t.Format(devTimeLayout), devShortSHALen, short)
+	return fmt.Sprintf("%s-r%st%sh%0*s", base, BranchHash(branch), t.Format(devTimeLayout), devShortSHALen, short)
 }
 
 func incrementPatch(version string) (string, error) {
@@ -416,12 +417,12 @@ func highestVersionTag(tags []string, versionOf func(string) string) (string, er
 //   - Stable tag vX.Y.Z on the commit → returns "X.Y.Z"
 //   - Pre-release tag vX.Y.Z-<pre> on the commit → returns "X.Y.Z-<pre>" (e.g. "1.2.3-rc.1")
 //   - Untagged commit → returns a semVer dev build:
-//     "X.Y.(Z+1)-b<branch-hash>t<YYYYMMDDHHMMSS>c<commit-sha>"
+//     "X.Y.(Z+1)-r<branch-hash>t<YYYYMMDDHHMMSS>h<commit-sha>"
 //     where X.Y.Z is the most recent stable (non-pre-release) ancestor tag reachable
 //     from the reference, or "0.0.0" when no stable ancestor exists. The timestamp is
 //     the committer date (in UTC) of the resolved commit, so the version is stable for
-//     a given commit. "c<commit-sha>" is the 7-char git short hash of the resolved
-//     commit, for tag-to-commit traceability. "b<branch-hash>" is the CRC32 fingerprint
+//     a given commit. "h<commit-sha>" is the 7-char git short hash of the resolved
+//     commit, for tag-to-commit traceability. "r<branch-hash>" is the CRC32 fingerprint
 //     of the branch name (see BranchHash), resolved from the GS_BRANCH_NAME env var,
 //     then the HEAD branch of the CWD git repo, then "unknown". Non-reachable tags are
 //     never used as the base.
