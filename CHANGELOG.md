@@ -7,6 +7,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** the module path moved to `github.com/giantswarm/gitsemver/v3`, as the removals below break the
+  library API. Importers must update their import paths; users of the CLI must run
+  `go install github.com/giantswarm/gitsemver/v3@latest`.
+- **Breaking:** dev build versions use the new schema from
+  [RFC #157](https://github.com/giantswarm/rfc/pull/157):
+  `X.Y.Z-b<CRC32-of-branch>t<YYYYMMDDHHMMSS>c<commit-sha>`, e.g.
+  `1.9.2-b7b5b4fa7t20260127094959c1a2b3c4`. The pre-release part is always 33 characters and holds no `.` and
+  no `-`, so a chart that concatenates the version into a Kubernetes label and trims the result can no longer
+  cut it on a character Kubernetes rejects
+  ([giantswarm#37079](https://github.com/giantswarm/giantswarm/issues/37079)). The branch is identified by the
+  CRC-32/ISO-HDLC checksum of its full, unsanitized name instead of the sanitized name itself, so no part of
+  the tag is truncated any more.
+- `validate --type dev` accepts both the new schema and the superseded
+  `X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<commit-sha>]` one, because tags in the old format are already
+  published. `get` only ever generates the new one.
+
+### Added
+
+- `gitsemver branch-hash [branch]` prints the 8-hex CRC32 fingerprint that a dev build embeds for a branch,
+  for use in a Flux `semverFilter`. Without an argument it uses the current branch. The library equivalents
+  are `gitsemver.BranchHash` and `gitsemver.CurrentBranch`.
+
+### Removed
+
+- **Breaking:** `GS_MAX_VERSION_LENGTH` and `Config.MaxVersionLength`. The generated version can no longer
+  overflow, so there is nothing left to bound or shorten.
+- **Breaking:** branch name sanitizing and middle-truncation (the `--` marker) in dev versions.
+
 ## [2.0.1] - 2026-06-08
 
 ### Fixed

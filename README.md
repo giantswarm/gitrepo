@@ -1,4 +1,4 @@
-[![Go Reference](https://pkg.go.dev/badge/github.com/giantswarm/gitsemver.svg)](https://pkg.go.dev/github.com/giantswarm/gitsemver)
+[![Go Reference](https://pkg.go.dev/badge/github.com/giantswarm/gitsemver/v3.svg)](https://pkg.go.dev/github.com/giantswarm/gitsemver/v3)
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/giantswarm/gitsemver/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/giantswarm/gitsemver/tree/main)
 
 # gitsemver
@@ -11,32 +11,43 @@ Library and CLI tool for computing a semVer-compatible version from a git refere
 |---|---|
 | HEAD carries stable tag `vX.Y.Z` | `X.Y.Z` |
 | HEAD carries pre-release tag `vX.Y.Z-rc.N` | `X.Y.Z-rc.N` |
-| HEAD is untagged, stable ancestor `vX.Y.Z` reachable | `X.Y.(Z+1)-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>.h<commit-sha>` |
-| HEAD is untagged, no stable ancestor reachable | `0.0.0-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>.h<commit-sha>` |
+| HEAD is untagged, stable ancestor `vX.Y.Z` reachable | `X.Y.(Z+1)-b<branch-hash>t<YYYYMMDDHHMMSS>c<commit-sha>` |
+| HEAD is untagged, no stable ancestor reachable | `0.0.0-b<branch-hash>t<YYYYMMDDHHMMSS>c<commit-sha>` |
 
-For untagged commits the base is the most recent **stable** ancestor tag reachable from the ref (RC and other pre-release tags are skipped). When no stable ancestor exists the version prefix is `0.0.0` with no patch increment. The trailing `.h<commit-sha>` is the 7-char git short hash of the resolved commit, for tag-to-commit traceability.
+For untagged commits the base is the most recent **stable** ancestor tag reachable from the ref (RC and other pre-release tags are skipped). When no stable ancestor exists the version prefix is `0.0.0` with no patch increment.
 
-### Length limit
+### Dev build pre-release part
 
-Dev build versions are often used as Kubernetes attributes, so they are kept DNS/label-compatible (lowercased, `[a-z0-9-]` only) and bounded to a maximum length (default **63**, configurable via `GS_MAX_VERSION_LENGTH`). Only the branch part is ever shortened to fit: when it would overflow, its middle is dropped and replaced with a `--` marker, keeping the head and the more distinctive tail (e.g. `renovate-up--s-to-latest`). The version base, timestamp and commit hash are always kept intact, so the per-branch chronological sort order is never affected.
+Dev build versions are often used inside Kubernetes attributes, so the pre-release part is built from three fixed-width, alphanumeric fields:
+
+| Field | Meaning |
+|---|---|
+| `b<branch-hash>` | CRC32 checksum of the full, unsanitized branch name, lowercase hex, padded to 8 digits. Print it with `gitsemver branch-hash`. |
+| `t<YYYYMMDDHHMMSS>` | Committer date of the resolved commit, in UTC, with no separators. |
+| `c<commit-sha>` | 7-char git short hash of the resolved commit, for tag-to-commit traceability. |
+
+The result is always 33 characters and holds no `.` and no `-`. A caller that concatenates the version into a label and then trims to 63 characters therefore cannot cut it on a character Kubernetes rejects. The literal `b`, `t` and `c` prefixes keep every field alphanumeric: an all-digit pre-release identifier is compared numerically and forbids leading zeros, which would break time stamps.
+
+For one branch the `b<branch-hash>t` prefix is constant, so semVer compares the fixed-width time stamps and the per-branch chronological sort order is correct. Two commits in the same second still get different tags, but the commit hash then decides their order, which is arbitrary.
 
 ```sh
 $ GS_BRANCH_NAME=renovate/update-all-dependencies-to-latest gitsemver get
-1.2.4-dev.renovate-up--s-to-latest.2026-01-27.09-49-59.h1a2b3c4
+1.2.4-b08a93c50t20260127094959c1a2b3c4
 ```
+
+The schema changed once. `validate --type dev` still accepts the superseded `X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<commit-sha>]` format, because tags in that format are already published. `get` only ever generates the current one. See [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades).
 
 ## Environment variables
 
 | Variable | Effect |
 |---|---|
-| `GS_BRANCH_NAME` | Override the branch name embedded in dev build versions. Defaults to the HEAD branch of the repo, then `"unknown"`. |
+| `GS_BRANCH_NAME` | Override the branch name that dev build versions are fingerprinted from. Defaults to the HEAD branch of the repo, then `"unknown"`. |
 | `GS_GIT_TAG_PREFIX` | Monorepo support: only consider tags prefixed with `"<value>/"`, e.g. `module-a/v1.2.3`. |
-| `GS_MAX_VERSION_LENGTH` | Maximum length of a generated dev build version. Defaults to `63`. Only the branch part is shortened to fit. |
 
 ## CLI — `gitsemver`
 
 ```
-go install github.com/giantswarm/gitsemver@latest
+go install github.com/giantswarm/gitsemver/v3@latest
 ```
 
 ```
@@ -44,6 +55,7 @@ Usage:
   gitsemver get [--dir <path>] [--ref <ref>]
   gitsemver next <patch|minor|major|patch-rc|minor-rc|major-rc|rc|rc-release> [--last-tag <tag>]
   gitsemver validate [--type dev|rc|stable|any] <version>
+  gitsemver branch-hash [branch]
   gitsemver completion <bash|zsh|fish|powershell>
 ```
 
@@ -58,7 +70,7 @@ Print the version for a git ref:
 
 ```sh
 $ GS_BRANCH_NAME=my-feature gitsemver get
-1.2.4-dev.my-feature.2026-01-27.09-49-59.h1a2b3c4
+1.2.4-b7b5b4fa7t20260127094959c1a2b3c4
 
 $ gitsemver get --ref v1.2.3
 1.2.3
@@ -98,6 +110,22 @@ Valid bump types:
 When no version tag is reachable from HEAD, `0.0.0` is used as the base.
 Note: `rc` and `rc-release` require an actual reachable RC tag and cannot be used from the implicit `0.0.0` base — start a new RC series with `patch-rc`, `minor-rc`, or `major-rc` instead.
 
+### branch-hash
+
+Print the CRC32 fingerprint a dev build embeds for a branch. Use it to build a Flux `semverFilter` that matches one branch:
+
+```sh
+$ gitsemver branch-hash my-feature
+7b5b4fa7
+
+$ git branch --show-current
+new-feature
+$ gitsemver branch-hash          # no argument: the current branch
+2ae1b065
+```
+
+The algorithm is CRC-32/ISO-HDLC, the variant Go's `hash/crc32.ChecksumIEEE` and Python's `zlib.crc32` implement. The POSIX `cksum` tool uses a different variant and returns a different value.
+
 ### Shell completion
 
 Generate and load a completion script for your shell:
@@ -121,11 +149,13 @@ Once loaded, `gitsemver next <TAB>` completes bump types and `gitsemver validate
 ## Go library
 
 ```go
+import "github.com/giantswarm/gitsemver/v3/pkg/gitsemver"
+
 c := gitsemver.Config{
     Dir: "/path/to/some-repo",
     URL: "git@github.com:giantswarm/some-repo.git",
 }
 repo, err := gitsemver.New(c)
 version, err := repo.ResolveVersion(ctx, "HEAD")
-// e.g. "1.2.4-dev.my-feature.2026-01-27.09-49-59.h1a2b3c4"
+// e.g. "1.2.4-b7b5b4fa7t20260127094959c1a2b3c4"
 ```

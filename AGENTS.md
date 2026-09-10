@@ -8,19 +8,20 @@ repository's tag history.
 - `gitsemver get [--dir <path>] [--ref <ref>]` — resolves and prints the version for a git ref
 - `gitsemver next <bump-type> [--last-tag <tag>]` — computes the next semver tag
 - `gitsemver validate [--type dev|rc|stable|any] <version>` — validates a version string
+- `gitsemver branch-hash [branch]` — prints the CRC32 branch fingerprint used in dev builds
 
 Version resolution rules:
 
 - Commit carrying `vX.Y.Z` → prints `X.Y.Z`
 - Commit carrying `vX.Y.Z-rc.N` → prints `X.Y.Z-rc.N`
-- Untagged commit → dev build: `X.Y.(Z+1)-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>`
+- Untagged commit → dev build: `X.Y.(Z+1)-b<CRC32-of-branch>t<YYYYMMDDHHMMSS>c<7-char-SHA>`
 - When a commit carries multiple version tags, the **highest semver tag wins** and a warning is written to
   `warn`
 
 ## Module and package layout
 
 ```
-github.com/giantswarm/gitsemver/v2   (module)
+github.com/giantswarm/gitsemver/v3   (module)
 main.go                               CLI entry point (cobra commands)
 main_test.go                          CLI integration tests
 pkg/gitsemver/
@@ -37,9 +38,8 @@ pkg/project/       Version/GitSHA/BuildTimestamp metadata
 
 | Var                     | Purpose                                                               |
 | ----------------------- | --------------------------------------------------------------------- |
-| `GS_BRANCH_NAME`        | Override branch name in dev builds                                    |
+| `GS_BRANCH_NAME`        | Override the branch name that dev builds fingerprint                  |
 | `GS_GIT_TAG_PREFIX`     | Monorepo: only consider tags with this prefix, e.g. `module-a/v1.2.3` |
-| `GS_MAX_VERSION_LENGTH` | Max dev version length (default 63, for Kubernetes labels)            |
 
 ## Key architectural notes
 
@@ -52,6 +52,13 @@ pkg/project/       Version/GitSHA/BuildTimestamp metadata
 
 - `tagRegex` matches `vX.Y.Z` and `vX.Y.Z-rc.N` (no leading zeros)
 - `stableTagRegex` matches only `vX.Y.Z`
+
+**Dev build tags** follow [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades).
+The pre-release part is always 33 characters and holds no `.` and no `-`, so a caller that concatenates the
+version into a Kubernetes label and trims it cannot cut on an illegal character. `BranchHash` uses
+CRC-32/ISO-HDLC (`hash/crc32.ChecksumIEEE`) — not the POSIX `cksum` variant. Nothing in the tag is ever
+truncated. `IsValidDev` also accepts the superseded `-dev.<branch>.<date>.<time>[.h<sha>]` schema, because
+tags in that format are already published; `ResolveVersion` only ever generates the current one.
 
 **`compareSemver` follows semver §11:** pre-release has lower precedence than stable at the same X.Y.Z. But an
 RC at a _higher patch_ beats a stable at a lower patch — e.g. `v1.0.1-rc.1 > v1.0.0`.

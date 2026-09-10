@@ -59,3 +59,19 @@ func Test_runNext_unknownBumpType(t *testing.T) {
 		t.Error("runNext with unknown bump type should return error")
 	}
 }
+
+func Test_runBranchHash_explicitBranch(t *testing.T) {
+	t.Parallel()
+	if err := runBranchHash([]string{"my-feature"}); err != nil {
+		t.Errorf("runBranchHash(my-feature) = %v, want nil", err)
+	}
+}
+
+func Test_runBranchHash_currentBranch(t *testing.T) {
+	// Not parallel: t.Setenv pins the branch so the test does not depend on
+	// which branch the repository is checked out on.
+	t.Setenv("GS_BRANCH_NAME", "my-feature")
+	if err := runBranchHash(nil); err != nil {
+		t.Errorf("runBranchHash(nil) = %v, want nil", err)
+	}
+}
