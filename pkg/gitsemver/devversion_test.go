@@ -88,10 +88,16 @@ func Test_buildDevVersion(t *testing.T) {
 		}
 	})
 
-	t.Run("a short commit hash is embedded as is", func(t *testing.T) {
+	t.Run("a short commit hash gets leading zeros", func(t *testing.T) {
+		// go-git always yields a 40-character hash, so this cannot happen
+		// through ResolveVersion. The padding keeps the 33-character promise
+		// unconditional, which the doc comment and the README both state.
 		got := buildDevVersion("0.0.0", "main", "abc", ts)
-		if !strings.HasSuffix(got, "cabc") {
-			t.Errorf("got %q, want trailing cabc", got)
+		if !strings.HasSuffix(got, "c0000abc") {
+			t.Errorf("got %q, want trailing c0000abc", got)
+		}
+		if !IsValidDev(got) {
+			t.Errorf("%q is not a valid dev version", got)
 		}
 	})
 

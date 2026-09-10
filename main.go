@@ -48,6 +48,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"slices"
 	"strings"
@@ -166,7 +167,7 @@ func newBranchHashCmd() *cobra.Command {
 		Short: "Print the CRC32 branch fingerprint that dev build versions embed.",
 		Args:  usageArgs(cobra.MaximumNArgs(1)),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runBranchHash(args)
+			return runBranchHash(cmd.OutOrStdout(), args)
 		},
 	}
 }
@@ -250,14 +251,17 @@ func runNext(bumpType, lastTag string) error {
 }
 
 // runBranchHash prints the fingerprint of the branch named in args, or of the
-// current branch when args is empty.
-func runBranchHash(args []string) error {
-	branch := gitsemver.CurrentBranch()
-	if len(args) == 1 {
+// current branch when args is empty. It writes to out so a test can read the
+// value back; the other runners print their single line directly.
+func runBranchHash(out io.Writer, args []string) error {
+	var branch string
+	if len(args) > 0 {
 		branch = args[0]
+	} else {
+		branch = gitsemver.CurrentBranch()
 	}
-	fmt.Println(gitsemver.BranchHash(branch))
-	return nil
+	_, err := fmt.Fprintln(out, gitsemver.BranchHash(branch))
+	return err
 }
 
 func runValidate(typFlag, version string) error {

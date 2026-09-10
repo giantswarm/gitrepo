@@ -89,14 +89,15 @@ func BranchHash(branch string) string {
 // break time stamps.
 //
 // commitSHA is the full commit hash; its first devShortSHALen hex characters are
-// embedded. For one branch the "b<hash>t" prefix is constant, so semVer compares
-// the fixed-width time stamps and the per-branch order stays chronological.
+// embedded. A shorter hash gets leading zeros, so the width never varies. For one
+// branch the "b<hash>t" prefix is constant, so semVer compares the fixed-width
+// time stamps and the per-branch order stays chronological.
 func buildDevVersion(base, branch, commitSHA string, t time.Time) string {
 	short := commitSHA
 	if len(short) > devShortSHALen {
 		short = short[:devShortSHALen]
 	}
-	return fmt.Sprintf("%s-b%st%sc%s", base, BranchHash(branch), t.Format(devTimeLayout), short)
+	return fmt.Sprintf("%s-b%st%sc%0*s", base, BranchHash(branch), t.Format(devTimeLayout), devShortSHALen, short)
 }
 
 func incrementPatch(version string) (string, error) {

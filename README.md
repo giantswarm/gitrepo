@@ -26,7 +26,7 @@ Dev build versions are often used inside Kubernetes attributes, so the pre-relea
 | `t<YYYYMMDDHHMMSS>` | Committer date of the resolved commit, in UTC, with no separators. |
 | `c<commit-sha>` | 7-char git short hash of the resolved commit, for tag-to-commit traceability. |
 
-The result is always 33 characters and holds no `.` and no `-`. A caller that concatenates the version into a label and then trims to 63 characters therefore cannot cut it on a character Kubernetes rejects. The literal `b`, `t` and `c` prefixes keep every field alphanumeric: an all-digit pre-release identifier is compared numerically and forbids leading zeros, which would break time stamps.
+The result is always 33 characters and holds no `.` and no `-`. A caller that concatenates the version into a label and then trims to 63 characters therefore cannot cut the pre-release part on a character Kubernetes rejects. Only a prefix long enough to push the cut into the `X.Y.Z` part can still land on the leading `-`. The literal `b`, `t` and `c` prefixes keep every field alphanumeric: an all-digit pre-release identifier is compared numerically and forbids leading zeros, which would break time stamps.
 
 For one branch the `b<branch-hash>t` prefix is constant, so semVer compares the fixed-width time stamps and the per-branch chronological sort order is correct. Two commits in the same second still get different tags, but the commit hash then decides their order, which is arbitrary.
 
@@ -36,6 +36,18 @@ $ GS_BRANCH_NAME=renovate/update-all-dependencies-to-latest gitsemver get
 ```
 
 The schema changed once. `validate --type dev` still accepts the superseded `X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<commit-sha>]` format, because tags in that format are already published. `get` only ever generates the current one. See [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades).
+
+**Sort order across the two schemas.** A current tag sorts *below* a superseded one at the same `X.Y.Z`, because `b` < `d` in the first pre-release identifier:
+
+```
+1.2.4-b7b5b4fa7t20260127094959c1a2b3c4  <  1.2.4-dev.my-feature.2026-01-27.09-49-59.h1a2b3c4
+```
+
+A consumer that selects dev builds with a bare range such as `semver: "*-*"` therefore keeps the old tag until the next stable release raises the base. Pin the branch instead, as the RFC describes:
+
+```yaml
+semverFilter: ".*-b7b5b4fa7t.*"
+```
 
 ## Environment variables
 

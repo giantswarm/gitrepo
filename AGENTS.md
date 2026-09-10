@@ -28,7 +28,7 @@ pkg/gitsemver/
   repo.go          Repo struct, New(), ResolveVersion(), NextVersion(), buildVersionMaps()
   next.go          ComputeNextVersion(), parseVersionString(), compareSemver()
   validate.go      IsValid*(), semver regex definitions (numID, semverParseRegex)
-  funcs.go         TopLevel(), HeadTag()
+  funcs.go         TopLevel()
   error.go         InvalidConfigError, ExecutionFailedError
   devversion_test.go, repo_test.go, next_test.go, next_repo_test.go, ...
 pkg/project/       Version/GitSHA/BuildTimestamp metadata
@@ -55,7 +55,10 @@ pkg/project/       Version/GitSHA/BuildTimestamp metadata
 
 **Dev build tags** follow [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades).
 The pre-release part is always 33 characters and holds no `.` and no `-`, so a caller that concatenates the
-version into a Kubernetes label and trims it cannot cut on an illegal character. `BranchHash` uses
+version into a Kubernetes label and trims it cannot cut the pre-release part on an illegal character (a
+prefix long enough to push the cut into `X.Y.Z` can still land on the leading `-`). A current tag sorts
+_below_ a superseded one at the same `X.Y.Z`, because `b` < `d`; a consumer must filter on `.*-b<hash>t.*`
+rather than on a bare `*-*` range. `BranchHash` uses
 CRC-32/ISO-HDLC (`hash/crc32.ChecksumIEEE`) — not the POSIX `cksum` variant. Nothing in the tag is ever
 truncated. `IsValidDev` also accepts the superseded `-dev.<branch>.<date>.<time>[.h<sha>]` schema, because
 tags in that format are already published; `ResolveVersion` only ever generates the current one.

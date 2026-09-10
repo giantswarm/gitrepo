@@ -17,13 +17,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   `X.Y.Z-b<CRC32-of-branch>t<YYYYMMDDHHMMSS>c<commit-sha>`, e.g.
   `1.9.2-b7b5b4fa7t20260127094959c1a2b3c4`. The pre-release part is always 33 characters and holds no `.` and
   no `-`, so a chart that concatenates the version into a Kubernetes label and trims the result can no longer
-  cut it on a character Kubernetes rejects
+  cut the pre-release part on a character Kubernetes rejects — only a prefix long enough to push the cut into
+  the `X.Y.Z` part can still do that
   ([giantswarm#37079](https://github.com/giantswarm/giantswarm/issues/37079)). The branch is identified by the
   CRC-32/ISO-HDLC checksum of its full, unsanitized name instead of the sanitized name itself, so no part of
   the tag is truncated any more.
 - `validate --type dev` accepts both the new schema and the superseded
   `X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<commit-sha>]` one, because tags in the old format are already
   published. `get` only ever generates the new one.
+
+  Note the sort order across the two schemas: a new tag sorts **below** an old one at the same `X.Y.Z`,
+  because `b` < `d` in the first pre-release identifier. A consumer that selects dev builds with a bare range
+  such as a Flux `semver: "*-*"` keeps the old tag until the next stable release raises the base. Pin the
+  branch with `semverFilter: ".*-b<branch-hash>t.*"` instead.
 
 ### Added
 
