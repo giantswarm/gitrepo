@@ -55,7 +55,8 @@ pkg/project/       Version/GitSHA/BuildTimestamp metadata
 
 **Dev build tags** follow [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades),
 except for the separator letters: the RFC spells them `b`, `t` and `c`, this tool uses `r` (ref), `t` (time)
-and `h` (hash), because `b` and `c` are hex digits and hide the field boundaries. The RFC needs an amendment.
+and `h` (hash), because `b` and `c` are hex digits and hide the field boundaries. RFC PR #159 amends the
+RFC to match.
 The pre-release part is always 33 characters and holds no `.` and no `-`, so a caller that concatenates the
 version into a Kubernetes label and trims it cannot cut the pre-release part on an illegal character (a
 prefix long enough to push the cut into `X.Y.Z` can still land on the leading `-`). A current tag sorts

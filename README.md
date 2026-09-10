@@ -37,7 +37,7 @@ $ GS_BRANCH_NAME=renovate/update-all-dependencies-to-latest gitsemver get
 
 The schema changed once. `validate --type dev` still accepts the superseded `X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<commit-sha>]` format, because tags in that format are already published. `get` only ever generates the current one. See [RFC: semver-based automatic upgrades](https://github.com/giantswarm/rfc/tree/main/semver-based-automatic-upgrades).
 
-The RFC spells the three separators `b`, `t` and `c`. This tool uses `r` (ref), `t` (time) and `h` (hash) instead, because `b` and `c` are hex digits and a reader cannot see where a field ends. Every other property is unchanged: the field order, the widths, the CRC variant and the 33-character total. **The RFC needs an amendment to match.**
+The RFC spells the three separators `b`, `t` and `c`. This tool uses `r` (ref), `t` (time) and `h` (hash) instead, because `b` and `c` are hex digits and a reader cannot see where a field ends. Every other property is unchanged: the field order, the widths, the CRC variant and the 33-character total. [RFC PR #159](https://github.com/giantswarm/rfc/pull/159) amends the RFC to match.
 
 **Sort order.** A current tag sorts *above* a superseded one at the same `X.Y.Z`, because `r` > `d` in the first pre-release identifier. A consumer therefore moves to the current schema at once:
 

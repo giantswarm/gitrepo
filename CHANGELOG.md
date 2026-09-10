@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   the tag is truncated any more. The separators differ from the RFC, which spells them `b`, `t` and `c`:
   `b` and `c` are hex digits and hide the field boundaries, so this tool uses `r` (ref), `t` (time) and
   `h` (hash). The field order, the widths, the CRC variant and the 33-character total are unchanged.
+  [RFC PR #159](https://github.com/giantswarm/rfc/pull/159) amends the RFC to match.
 - `validate --type dev` accepts both the new schema and the superseded
   `X.Y.Z-dev.<branch>.<YYYY-MM-DD>.<HH-MM-SS>[.h<commit-sha>]` one, because tags in the old format are already
   published. `get` only ever generates the new one.
